@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>围棋课堂 · 老师端</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="mini-stone black"></span><span class="mini-stone white"></span>
+      <span data-i18n="app_title"></span>·<span data-i18n="entry_teacher"></span>
+    </div>
+    <div class="topbar-right">
+      <span id="conn" class="status"><span class="dot"></span><span class="txt"></span></span>
+      <button id="lang-btn"></button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="board-wrap"><div id="board"></div></div>
+
+    <aside class="side">
+      <section class="panel">
+        <h2 data-i18n="board"></h2>
+        <div class="seg" id="size-seg">
+          <button data-size="9">9×9</button>
+          <button data-size="13">13×13</button>
+          <button data-size="19">19×19</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 data-i18n="mode"></h2>
+        <div class="seg" id="mode-seg">
+          <button data-mode="teaching" data-i18n="mode_teaching"></button>
+          <button data-mode="battle" data-i18n="mode_battle"></button>
+          <button data-mode="study" data-i18n="mode_study"></button>
+        </div>
+      </section>
+
+      <!-- 摆棋工具箱：教学 & 学习模式 -->
+      <section class="panel" id="play-tools">
+        <div class="seg" id="rules-seg">
+          <button data-rules="on" data-i18n="rules_on"></button>
+          <button data-rules="off" data-i18n="rules_off"></button>
+        </div>
+        <div class="color-pick hidden" id="color-pick">
+          <span class="lbl" data-i18n="free_color"></span>
+          <div class="opt black active" data-color="black" title="Black"></div>
+          <div class="opt white" data-color="white" title="White"></div>
+        </div>
+        <p class="hint" id="play-hint"></p>
+        <div class="row">
+          <button class="ghost" id="prev-btn" data-i18n="prev"></button>
+          <button class="ghost" id="next-btn" data-i18n="next"></button>
+        </div>
+        <div class="row">
+          <button class="warn" id="pass-btn" data-i18n="pass"></button>
+          <button class="danger" id="clear-btn" data-i18n="clear_board"></button>
+        </div>
+      </section>
+
+      <!-- 对战模式 -->
+      <section class="panel hidden" id="battle-panel">
+        <div id="battle-setup">
+          <h2 data-i18n="mode_battle"></h2>
+          <label class="field-label" data-i18n="pick_student"></label>
+          <select id="battle-student"></select>
+          <div>
+            <span class="field-label" style="margin-top:10px" data-i18n="pick_teacher_color"></span>
+            <span class="seg inline" id="battle-color-seg">
+              <button data-color="black" class="active" data-i18n="black"></button>
+              <button data-color="white" data-i18n="white"></button>
+            </span>
+          </div>
+          <div class="row">
+            <button class="primary" id="battle-start" data-i18n="start_battle"></button>
+          </div>
+        </div>
+        <div id="battle-live" class="hidden">
+          <h2 id="battle-title"></h2>
+          <p class="hint" id="battle-turn"></p>
+          <div class="row">
+            <button class="ghost" id="undo-btn" data-i18n="undo"></button>
+            <button class="warn" id="bpass-btn" data-i18n="pass"></button>
+          </div>
+          <div class="row">
+            <button class="danger" id="battle-end" data-i18n="end_battle"></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 学习模式 -->
+      <section class="panel hidden" id="study-panel">
+        <div id="study-setup-ui">
+          <p class="hint" data-i18n="study_setup_hint" style="margin-top:0"></p>
+          <div class="row">
+            <button class="primary" id="study-start" data-i18n="study_start"></button>
+          </div>
+        </div>
+        <div id="study-live-ui" class="hidden">
+          <p class="hint" data-i18n="study_active_hint" style="margin-top:0"></p>
+          <div class="row">
+            <button class="primary" id="study-resend" data-i18n="study_resend"></button>
+          </div>
+          <div class="row">
+            <button class="danger" id="study-end" data-i18n="study_end"></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="turn-indicator">
+          <div class="turn-stone black" id="turn-stone"></div>
+          <span id="turn-text"></span>
+        </div>
+        <div class="capture-row">
+          <div class="capture-stone black"></div>
+          <span><span data-i18n="black"></span> <span data-i18n="captured"></span>:
+            <span id="cap-black">0</span></span>
+        </div>
+        <div class="capture-row">
+          <div class="capture-stone white"></div>
+          <span><span data-i18n="white"></span> <span data-i18n="captured"></span>:
+            <span id="cap-white">0</span></span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 data-i18n="students"></h2>
+        <div class="roster" id="roster"></div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- 老师口令登录 -->
+  <div class="modal-overlay hidden" id="auth-modal">
+    <div class="modal">
+      <h2 data-i18n="pwd_title"></h2>
+      <input type="password" id="pwd-input" data-i18n-ph="pwd_label" autocomplete="off">
+      <div class="err" id="pwd-err"></div>
+      <button class="primary" id="pwd-join" data-i18n="pwd_join"></button>
+    </div>
+  </div>
+
+  <script src="/go-engine.js"></script>
+  <script src="/common.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var C = GO_COMMON;
+
+      var token = localStorage.getItem('go-teacher-token') || null;
+      var S = null;              // 最近一次收到的服务器状态
+      var es = null;
+      var freeColor = 'black';   // 自由摆子所选颜色
+      var battleColor = 'black'; // 对战中老师所选颜色
+
+      var $ = function (id) { return document.getElementById(id); };
+      var board = new C.BoardUI($('board'), onBoardClick);
+
+      /* ---------- 连接与登录 ---------- */
+
+      function setStatus(ok) {
+        var el = $('conn');
+        el.classList.toggle('ok', ok);
+        el.querySelector('.txt').textContent = ok ? C.t('connected') : C.t('disconnected');
+      }
+
+      function connect() {
+        if (es) es.close();
+        es = C.openEvents('/events?token=' + encodeURIComponent(token), {
+          onState: function (st) { S = st; render(); },
+          onExpired: function () {
+            localStorage.removeItem('go-teacher-token');
+            token = null;
+            showAuth('');
+          },
+          onStatus: setStatus
+        });
+      }
+
+      function showAuth() {
+        $('auth-modal').classList.remove('hidden');
+        $('pwd-err').textContent = '';
+        $('pwd-input').value = '';
+        setTimeout(function () { $('pwd-input').focus(); }, 50);
+      }
+
+      function doAuth() {
+        var pwd = $('pwd-input').value;
+        C.api('teacher/auth', { password: pwd }).then(function (r) {
+          token = r.token;
+          localStorage.setItem('go-teacher-token', token);
+          $('auth-modal').classList.add('hidden');
+          connect();
+        }).catch(function (e) {
+          $('pwd-err').textContent = (e.code === 'wrong_password') ? C.t('pwd_wrong') : (e.message || '');
+        });
+      }
+
+      /* ---------- 落子权限 ---------- */
+
+      function canMoveNow() {
+        if (!S) return false;
+        if (S.mode === 'battle') return !!S.battle && S.battle.teacherColor === S.game.currentPlayer;
+        return true; // 教学 / 学习（摆棋阶段或练习期调整棋盘）
+      }
+
+      function previewColorNow() {
+        if (!S) return null;
+        if (S.mode === 'battle') return S.battle ? S.battle.teacherColor : null;
+        if (S.freeMode) return freeColor;
+        return S.game.currentPlayer;
+      }
+
+      function onBoardClick(x, y) {
+        if (!S || !token) return;
+        if (!canMoveNow()) {
+          if (S.mode === 'battle') C.toast(C.t('not_your_turn'));
+          return;
+        }
+        var body = { token: token, x: x, y: y };
+        if (S.mode !== 'battle' && S.freeMode) body.color = freeColor;
+        C.api('move', body).catch(function (e) {
+          if (e.code === 'illegal') C.toast(C.t('illegal'));
+        });
+      }
+
+      /* ---------- 渲染 ---------- */
+
+      function render() {
+        if (!S) return;
+
+        board.setSize(S.size);
+        var interactive = canMoveNow();
+        board.render(S.game, { interactive: interactive, previewColor: interactive ? previewColorNow() : null });
+
+        each('#size-seg button', function (b) { b.classList.toggle('active', +b.dataset.size === S.size); });
+        each('#mode-seg button', function (b) { b.classList.toggle('active', b.dataset.mode === S.mode); });
+
+        var battleMode = S.mode === 'battle';
+        var studyMode = S.mode === 'study';
+        $('play-tools').classList.toggle('hidden', battleMode);
+        $('battle-panel').classList.toggle('hidden', !battleMode);
+        $('study-panel').classList.toggle('hidden', !studyMode);
+
+        // 摆棋工具箱
+        each('#rules-seg button', function (b) {
+          b.classList.toggle('active', (b.dataset.rules === 'on') !== S.freeMode);
+        });
+        $('color-pick').classList.toggle('hidden', !S.freeMode || battleMode);
+        $('play-hint').textContent = S.freeMode ? C.t('free_hint') : C.t('teaching_hint');
+        $('prev-btn').disabled = !(S.game.historyIndex > 0);
+        $('next-btn').disabled = !(S.game.historyIndex < S.game.historyLen - 1);
+        $('pass-btn').classList.toggle('hidden', !!S.freeMode);
+
+        // 对战面板
+        if (battleMode) {
+          if (S.battle) {
+            $('battle-setup').classList.add('hidden');
+            $('battle-live').classList.remove('hidden');
+            var tc = S.battle.teacherColor;
+            var sc = tc === 'black' ? 'white' : 'black';
+            $('battle-title').textContent = C.t('battle_between') + ': ' + C.t('teacher') + '（' + C.t(tc) + '） ' +
+              C.t('vs') + ' ' + S.battle.studentName + '（' + C.t(sc) + '）';
+            var turnTxt = S.game.currentPlayer === 'black' ? C.t('turn_black') : C.t('turn_white');
+            var who = S.game.currentPlayer === tc ? C.t('teacher') : S.battle.studentName;
+            $('battle-turn').textContent = turnTxt + ' · ' + who;
+            $('undo-btn').disabled = S.game.historyLen <= 1;
+          } else {
+            $('battle-setup').classList.remove('hidden');
+            $('battle-live').classList.add('hidden');
+            renderBattleSelect();
+          }
+        }
+
+        // 学习面板
+        if (studyMode) {
+          var active = S.study.phase === 'active';
+          $('study-setup-ui').classList.toggle('hidden', active);
+          $('study-live-ui').classList.toggle('hidden', !active);
+        }
+
+        // 轮次与提子
+        $('turn-stone').className = 'turn-stone ' + S.game.currentPlayer;
+        $('turn-text').textContent = S.game.currentPlayer === 'black' ? C.t('turn_black') : C.t('turn_white');
+        $('cap-black').textContent = S.game.captures.black;
+        $('cap-white').textContent = S.game.captures.white;
+
+        renderRoster();
+      }
+
+      function each(sel, fn) {
+        var list = document.querySelectorAll(sel);
+        for (var i = 0; i < list.length; i++) fn(list[i]);
+      }
+
+      function renderBattleSelect() {
+        var sel = $('battle-student');
+        var online = S.students.filter(function (s) { return s.online; });
+        var prev = sel.value;
+        sel.innerHTML = '';
+        online.forEach(function (s) {
+          var o = document.createElement('option');
+          o.value = s.id;
+          o.textContent = s.name;
+          sel.appendChild(o);
+        });
+        if (online.some(function (s) { return s.id === prev; })) sel.value = prev;
+        $('battle-start').disabled = online.length === 0;
+      }
+
+      function renderRoster() {
+        var el = $('roster');
+        el.innerHTML = '';
+        if (!S.students.length) {
+          var d = document.createElement('div');
+          d.className = 'roster-empty';
+          d.textContent = C.t('no_students');
+          el.appendChild(d);
+          return;
+        }
+        S.students.forEach(function (s) {
+          var row = document.createElement('div');
+          row.className = 'roster-row' + (s.online ? ' online' : '');
+          var dot = document.createElement('span');
+          dot.className = 'dot';
+          var nm = document.createElement('span');
+          nm.textContent = s.name;
+          row.appendChild(dot);
+          row.appendChild(nm);
+          if (S.battle && S.battle.studentId === s.id && S.mode === 'battle') {
+            var tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.textContent = C.t('battling_tag');
+            row.appendChild(tag);
+          }
+          el.appendChild(row);
+        });
+      }
+
+      /* ---------- 事件绑定 ---------- */
+
+      $('lang-btn').addEventListener('click', function () {
+        C.setLang(C.getLang() === 'zh' ? 'en' : 'zh');
+      });
+      window.onLangChange = render; // 切语言后刷新动态文本
+
+      each('#size-seg button', function (b) {
+        b.addEventListener('click', function () {
+          if (!token || (S && +b.dataset.size === S.size)) return;
+          C.api('size', { token: token, size: +b.dataset.size }).catch(showErr);
+        });
+      });
+
+      each('#mode-seg button', function (b) {
+        b.addEventListener('click', function () {
+          if (!token || !S || b.dataset.mode === S.mode) return;
+          if (S.mode === 'battle' && S.battle && !confirm(C.t('confirm_leave_battle'))) return;
+          if (S.mode === 'study' && S.study.phase === 'active' && !confirm(C.t('confirm_end_study'))) return;
+          C.api('mode', { token: token, mode: b.dataset.mode }).catch(showErr);
+        });
+      });
+
+      each('#rules-seg button', function (b) {
+        b.addEventListener('click', function () {
+          if (!token || (S && (b.dataset.rules === 'off') === S.freeMode)) return;
+          C.api('free', { token: token, on: b.dataset.rules === 'off' }).catch(showErr);
+        });
+      });
+
+      each('#color-pick .opt', function (b) {
+        b.addEventListener('click', function () {
+          freeColor = b.dataset.color;
+          each('#color-pick .opt', function (o) { o.classList.toggle('active', o === b); });
+          render();
+        });
+      });
+
+      each('#battle-color-seg button', function (b) {
+        b.addEventListener('click', function () {
+          battleColor = b.dataset.color;
+          each('#battle-color-seg button', function (o) { o.classList.toggle('active', o === b); });
+        });
+      });
+
+      $('prev-btn').addEventListener('click', function () {
+        if (token) C.api('prev', { token: token }).catch(showErr);
+      });
+      $('next-btn').addEventListener('click', function () {
+        if (token) C.api('next', { token: token }).catch(showErr);
+      });
+      $('pass-btn').addEventListener('click', function () {
+        if (token) C.api('pass', { token: token }).catch(showErr);
+      });
+      $('clear-btn').addEventListener('click', function () {
+        if (token) C.api('reset', { token: token }).catch(showErr);
+      });
+
+      $('battle-start').addEventListener('click', function () {
+        if (!token) return;
+        var sel = $('battle-student');
+        if (!sel.value) return;
+        C.api('battle/start', {
+          token: token,
+          studentId: sel.value,
+          teacherColor: battleColor
+        }).catch(function (e) {
+          C.toast(e.code === 'student_offline' ? C.t('student_offline') : (e.message || ''));
+        });
+      });
+      $('undo-btn').addEventListener('click', function () {
+        if (token) C.api('undo', { token: token }).catch(showErr);
+      });
+      $('bpass-btn').addEventListener('click', function () {
+        if (token) C.api('pass', { token: token }).catch(showErr);
+      });
+      $('battle-end').addEventListener('click', function () {
+        if (token) C.api('battle/end', { token: token }).catch(showErr);
+      });
+
+      $('study-start').addEventListener('click', function () {
+        if (token) C.api('study/start', { token: token }).catch(showErr);
+      });
+      $('study-resend').addEventListener('click', function () {
+        if (token) C.api('study/start', { token: token }).catch(showErr);
+      });
+      $('study-end').addEventListener('click', function () {
+        if (token) C.api('study/end', { token: token }).catch(showErr);
+      });
+
+      $('pwd-join').addEventListener('click', doAuth);
+      $('pwd-input').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') doAuth();
+      });
+
+      function showErr(e) {
+        if (e && e.code === 'illegal') C.toast(C.t('illegal'));
+        else if (e && e.code === 'not_your_turn') C.toast(C.t('not_your_turn'));
+        else if (e && e.message) C.toast(e.message);
+      }
+
+      /* ---------- 启动 ---------- */
+
+      C.applyI18n();
+      setStatus(false);
+      if (token) connect();
+      else showAuth();
+    })();
+  </script>
+</body>
+</html>

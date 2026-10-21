@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>围棋课堂 · 学生端</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="mini-stone black"></span><span class="mini-stone white"></span>
+      <span data-i18n="app_title"></span>·<span data-i18n="entry_student"></span>
+    </div>
+    <div class="topbar-right">
+      <span id="conn" class="status"><span class="dot"></span><span class="txt"></span></span>
+      <button id="lang-btn"></button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="board-wrap">
+      <div id="board"></div>
+      <div id="prepare-overlay" class="board-overlay hidden"><span data-i18n="study_wait"></span></div>
+    </div>
+
+    <aside class="side">
+      <section class="panel">
+        <h2 class="me-name" id="me-name"></h2>
+        <p class="hint" id="me-mode" style="margin:0"></p>
+        <button class="link-btn" id="rename-btn" data-i18n="change_name"></button>
+      </section>
+
+      <section class="panel">
+        <div class="turn-indicator">
+          <div class="turn-stone black" id="turn-stone"></div>
+          <span id="turn-text"></span>
+        </div>
+        <div class="capture-row">
+          <div class="capture-stone black"></div>
+          <span><span data-i18n="black"></span> <span data-i18n="captured"></span>:
+            <span id="cap-black">0</span></span>
+        </div>
+        <div class="capture-row">
+          <div class="capture-stone white"></div>
+          <span><span data-i18n="white"></span> <span data-i18n="captured"></span>:
+            <span id="cap-white">0</span></span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <p class="hint" id="hint-text" style="margin:0"></p>
+      </section>
+
+      <section class="panel hidden" id="study-tools">
+        <div class="row" style="margin-top:0">
+          <button class="ghost" id="s-undo" data-i18n="undo"></button>
+          <button class="warn" id="s-reset" data-i18n="study_reset"></button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- 学生名字登录 -->
+  <div class="modal-overlay hidden" id="name-modal">
+    <div class="modal">
+      <h2 data-i18n="name_title"></h2>
+      <input type="text" id="name-input" data-i18n-ph="name_label" maxlength="20" autocomplete="off">
+      <div class="sub-err" id="name-sub"></div>
+      <div class="err" id="name-err"></div>
+      <button class="primary" id="name-join" data-i18n="name_join"></button>
+    </div>
+  </div>
+
+  <script src="/go-engine.js"></script>
+  <script src="/common.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var C = GO_COMMON;
+
+      var creds = null;           // { studentId, token, name }
+      try { creds = JSON.parse(localStorage.getItem('go-student') || 'null'); } catch (e) {}
+
+      var S = null;               // 最近一次收到的服务器状态
+      var es = null;
+      var localGame = null;       // 学习模式：本地练习棋局（不同步到服务器）
+      var mySnapshot = null;      // 学习模式：老师下发的初始棋谱
+      var seededVersion = -1;     // 已 seed 的棋谱版本（避免无关广播覆盖本地进度）
+
+      var $ = function (id) { return document.getElementById(id); };
+      var board = new C.BoardUI($('board'), onBoardClick);
+
+      /* ---------- 连接与登录 ---------- */
+
+      function setStatus(ok) {
+        var el = $('conn');
+        el.classList.toggle('ok', ok);
+        el.querySelector('.txt').textContent = ok ? C.t('connected') : C.t('disconnected');
+      }
+
+      function connect() {
+        if (es) es.close();
+        es = C.openEvents(
+          '/events?studentId=' + encodeURIComponent(creds.studentId) + '&token=' + encodeURIComponent(creds.token),
+          {
+            onState: function (st) { S = st; render(); },
+            onExpired: function () {
+              // 服务端已重启等原因导致身份过期：重新填名字
+              resetCreds();
+              showNameModal(C.t('rejoin_hint'));
+            },
+            onStatus: setStatus
+          }
+        );
+      }
+
+      function resetCreds() {
+        localStorage.removeItem('go-student');
+        creds = null;
+        if (es) { es.close(); es = null; }
+      }
+
+      function showNameModal(subMsg) {
+        $('name-modal').classList.remove('hidden');
+        $('name-err').textContent = '';
+        $('name-sub').textContent = subMsg || '';
+        $('name-input').value = localStorage.getItem('go-last-name') || '';
+        setTimeout(function () { $('name-input').focus(); }, 50);
+      }
+
+      function join(name, id, token) {
+        return C.api('join', { name: name, id: id, token: token }).then(function (r) {
+          creds = { studentId: r.studentId, token: r.token, name: r.name };
+          localStorage.setItem('go-student', JSON.stringify(creds));
+          localStorage.setItem('go-last-name', r.name);
+          $('name-modal').classList.add('hidden');
+          connect();
+        });
+      }
+
+      function doJoin() {
+        var name = $('name-input').value.trim();
+        if (!name) { $('name-err').textContent = C.t('name_required'); return; }
+        join(name, creds && creds.studentId, creds && creds.token).catch(function (e) {
+          if (e.code === 'name_taken') {
+            resetCreds();
+            $('name-err').textContent = C.t('name_taken');
+          } else {
+            $('name-err').textContent = e.message || '';
+          }
+        });
+      }
+
+      /* ---------- 落子 ---------- */
+
+      function onBoardClick(x, y) {
+        if (!S || !creds) return;
+
+        // 学习模式：本地练习，不经过服务器
+        if (S.mode === 'study' && S.study.phase === 'active' && localGame) {
+          if (!localGame.place(x, y)) { C.toast(C.t('illegal')); return; }
+          render();
+          return;
+        }
+
+        // 对战模式：轮到自己才能落子（服务器也会校验）
+        if (S.mode === 'battle' && S.battle && S.battle.studentId === creds.studentId) {
+          var myColor = S.battle.teacherColor === 'black' ? 'white' : 'black';
+          if (S.game.currentPlayer !== myColor) { C.toast(C.t('not_your_turn')); return; }
+          C.api('move', { studentId: creds.studentId, token: creds.token, x: x, y: y })
+            .catch(function (e) { if (e.code === 'illegal') C.toast(C.t('illegal')); });
+        }
+        // 教学模式与其余情况：只读，点击无效
+      }
+
+      /* ---------- 渲染 ---------- */
+
+      function modeLabel(m) {
+        return m === 'teaching' ? C.t('mode_teaching') : m === 'battle' ? C.t('mode_battle') : C.t('mode_study');
+      }
+
+      function render() {
+        if (!S || !creds) return;
+
+        board.setSize(S.size);
+        $('me-name').textContent = C.t('hello') + '，' + creds.name;
+        $('me-mode').textContent = C.t('current_mode') + '：' + modeLabel(S.mode);
+
+        var overlay = $('prepare-overlay');
+        var interactive = false;
+        var previewColor = null;
+        var displayGame = S.game;
+        var hintText = '';
+
+        if (S.mode === 'teaching') {
+          hintText = C.t('watch_only');
+
+        } else if (S.mode === 'battle') {
+          if (S.battle) {
+            var isMe = S.battle.studentId === creds.studentId;
+            var myColor = S.battle.teacherColor === 'black' ? 'white' : 'black';
+            if (isMe) {
+              interactive = S.game.currentPlayer === myColor;
+              previewColor = myColor;
+              hintText = (myColor === 'black' ? C.t('you_play_black') : C.t('you_play_white')) + ' · ' +
+                (interactive ? C.t('your_turn') : C.t('wait_opponent'));
+            } else {
+              hintText = C.t('spectating') + '：' + C.t('teacher') + '（' + C.t(S.battle.teacherColor) + '） ' +
+                C.t('vs') + ' ' + S.battle.studentName + '（' + C.t(myColor) + '）';
+            }
+          } else {
+            hintText = C.t('spectating');
+          }
+
+        } else { // study
+          if (S.study.phase === 'active') {
+            if (seededVersion !== S.study.version || !localGame) {
+              mySnapshot = S.study.snapshot;
+              localGame = GoEngine.Game.fromDisplay(mySnapshot);
+              seededVersion = S.study.version;
+            }
+            displayGame = localGame.serialize();
+            interactive = true;
+            previewColor = localGame.currentPlayer;
+            hintText = C.t('study_go');
+          } else {
+            localGame = null;
+            mySnapshot = null;
+            seededVersion = -1;
+            hintText = C.t('study_wait');
+          }
+        }
+
+        var studying = S.mode === 'study' && S.study.phase === 'active';
+        overlay.classList.toggle('hidden', !(S.mode === 'study' && S.study.phase === 'setup'));
+        $('hint-text').textContent = hintText;
+        $('study-tools').classList.toggle('hidden', !studying);
+        $('s-undo').disabled = !localGame || localGame.history.length <= 1;
+        $('s-reset').disabled = !mySnapshot;
+
+        board.render(displayGame, { interactive: interactive, previewColor: previewColor });
+
+        $('turn-stone').className = 'turn-stone ' + displayGame.currentPlayer;
+        $('turn-text').textContent = displayGame.currentPlayer === 'black' ? C.t('turn_black') : C.t('turn_white');
+        $('cap-black').textContent = displayGame.captures.black;
+        $('cap-white').textContent = displayGame.captures.white;
+      }
+
+      /* ---------- 事件绑定 ---------- */
+
+      $('lang-btn').addEventListener('click', function () {
+        C.setLang(C.getLang() === 'zh' ? 'en' : 'zh');
+      });
+      window.onLangChange = render;
+
+      $('name-join').addEventListener('click', doJoin);
+      $('name-input').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') doJoin();
+      });
+
+      $('s-undo').addEventListener('click', function () {
+        if (localGame && localGame.undo()) render();
+      });
+
+      $('s-reset').addEventListener('click', function () {
+        if (mySnapshot) {
+          localGame = GoEngine.Game.fromDisplay(mySnapshot);
+          render();
+        }
+      });
+
+      $('rename-btn').addEventListener('click', function () {
+        resetCreds();
+        location.reload();
+      });
+
+      /* ---------- 启动 ---------- */
+
+      C.applyI18n();
+      setStatus(false);
+      if (creds && creds.studentId && creds.token) {
+        // 静默重连；失败（如重名/服务重启）则回到名字填写
+        join(creds.name, creds.studentId, creds.token).catch(function () {
+          resetCreds();
+          showNameModal('');
+        });
+      } else {
+        showNameModal('');
+      }
+    })();
+  </script>
+</body>
+</html>

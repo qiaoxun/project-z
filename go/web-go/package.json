@@ -1,0 +1,9 @@
+{
+  "name": "web-go",
+  "version": "1.0.0",
+  "private": true,
+  "description": "局域网围棋课堂：老师端 + 多学生端实时同步（零依赖 NodeJS）",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

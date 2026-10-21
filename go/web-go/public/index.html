@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>围棋课堂 · Go Classroom</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="mini-stone black"></span><span class="mini-stone white"></span>
+      <span data-i18n="app_title"></span>
+    </div>
+    <div class="topbar-right">
+      <button id="lang-btn"></button>
+    </div>
+  </header>
+
+  <main class="entry">
+    <p class="entry-sub" data-i18n="entry_hint"></p>
+    <div class="entry-cards">
+      <a class="entry-card" href="/teacher">
+        <div class="icon">🧑‍🏫</div>
+        <h2 data-i18n="entry_teacher"></h2>
+        <p data-i18n="entry_teacher_desc"></p>
+      </a>
+      <a class="entry-card" href="/student">
+        <div class="icon">🧒</div>
+        <h2 data-i18n="entry_student"></h2>
+        <p data-i18n="entry_student_desc"></p>
+      </a>
+    </div>
+  </main>
+
+  <script src="/common.js"></script>
+  <script>
+    document.getElementById('lang-btn').addEventListener('click', function () {
+      GO_COMMON.setLang(GO_COMMON.getLang() === 'zh' ? 'en' : 'zh');
+    });
+    GO_COMMON.applyI18n();
+  </script>
+</body>
+</html>

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 1: Magic Body & Stop!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-sun: #FFF9E6;
+    --primary: #FF5A5F;
+    --primary-shadow: #D93B41;
+    --secondary: #00A699;
+    --secondary-shadow: #007A70;
+    --accent-yellow: #FFB400;
+    --accent-purple: #8E44AD;
+    --dark-text: #2C3E50;
+    --card-bg: #FFFFFF;
+    --border-color: #484848;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+  }
+
+  body {
+    font-family: 'Fredoka', 'Nunito', sans-serif;
+    background: #1e1e24;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .deck-container {
+    width: 100%;
+    max-width: 960px;
+    aspect-ratio: 16 / 9;
+    background: var(--bg-sun);
+    border-radius: 28px;
+    border: 6px solid #2C3E50;
+    box-shadow: 0 16px 0px #18222c, 0 25px 40px rgba(0,0,0,0.4);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Slide Master Layout */
+  .slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    padding: 36px 48px;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    position: relative;
+  }
+
+  .slide.active {
+    display: flex;
+    animation: bounceIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @keyframes bounceIn {
+    0% { transform: scale(0.96); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Star Rewards HUD Bar */
+  .star-bar {
+    position: absolute;
+    top: 20px;
+    right: 28px;
+    display: flex;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 6px 14px;
+    border-radius: 40px;
+    border: 3px solid #2C3E50;
+    box-shadow: 0 4px 0 #2C3E50;
+    z-index: 20;
+  }
+
+  .star-icon {
+    font-size: 26px;
+    filter: grayscale(100%) opacity(30%);
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .star-icon.earned {
+    filter: none;
+    animation: popStar 0.4s ease forwards;
+  }
+
+  @keyframes popStar {
+    0% { transform: scale(0.5) rotate(-30deg); }
+    50% { transform: scale(1.4) rotate(15deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 46px;
+    font-weight: 700;
+    color: var(--dark-text);
+    text-shadow: 2px 2px 0px #FFF;
+    letter-spacing: 0.5px;
+  }
+
+  h2 {
+    font-size: 38px;
+    color: var(--dark-text);
+    margin-bottom: 8px;
+  }
+
+  .badge-tag {
+    display: inline-block;
+    background: var(--accent-yellow);
+    color: #2C3E50;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 20px;
+    border: 2px solid #2C3E50;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  /* Action Cards Grid */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    width: 100%;
+    margin: auto 0;
+  }
+
+  .action-card {
+    background: var(--card-bg);
+    border: 5px solid #2C3E50;
+    border-radius: 24px;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 0 #2C3E50;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  .action-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 0 #2C3E50;
+  }
+
+  .action-card:active {
+    transform: translateY(6px);
+    box-shadow: 0 4px 0 #2C3E50;
+  }
+
+  .card-emoji {
+    font-size: 72px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+
+  .action-word {
+    font-size: 38px;
+    font-weight: 800;
+    color: #2C3E50;
+  }
+
+  .action-card.card-up { border-color: #2980B9; box-shadow: 0 10px 0 #1A5276; }
+  .action-card.card-down { border-color: #27AE60; box-shadow: 0 10px 0 #196F3D; }
+  .action-card.card-jump { border-color: #E67E22; box-shadow: 0 10px 0 #B95E09; }
+  .action-card.card-stop { border-color: #C0392B; box-shadow: 0 10px 0 #922B21; background: #FFEEEE; }
+
+  /* Teacher Script Pill */
+  .teacher-prompt {
+    background: #FFF;
+    border: 3px dashed #7F8C8D;
+    border-radius: 18px;
+    padding: 10px 24px;
+    width: 90%;
+    font-size: 17px;
+    color: #4A4A4A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .teacher-prompt strong {
+    color: var(--primary);
+  }
+
+  /* Control Dock */
+  .deck-controls {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .nav-btn {
+    background: #FFF;
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 700;
+    color: #2C3E50;
+    border: 4px solid #2C3E50;
+    border-radius: 16px;
+    padding: 10px 24px;
+    box-shadow: 0 6px 0 #2C3E50;
+    cursor: pointer;
+    transition: all 0.1s ease;
+  }
+
+  .nav-btn:hover {
+    background: #F0F3F4;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 0 #2C3E50;
+  }
+
+  .nav-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #2C3E50;
+  }
+
+  .slide-counter {
+    font-size: 20px;
+    font-weight: 800;
+    color: #FFF;
+    letter-spacing: 1px;
+  }
+
+  /* Specific Layouts */
+  .center-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: auto 0;
+  }
+
+  .giant-icon {
+    font-size: 110px;
+    margin: 10px 0;
+    filter: drop-shadow(0 6px 0 rgba(0,0,0,0.15));
+  }
+
+  .giant-title {
+    font-size: 58px;
+    font-weight: 900;
+  }
+
+  .sound-pulse {
+    animation: soundPulse 1.2s infinite alternate;
+  }
+
+  @keyframes soundPulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.1) rotate(4deg); }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck-container">
+  <!-- Interactive Star Rewards Counter -->
+  <div class="star-bar" title="Click stars to award them!">
+    <span class="star-icon" onclick="toggleStar(0)">⭐</span>
+    <span class="star-icon" onclick="toggleStar(1)">⭐</span>
+    <span class="star-icon" onclick="toggleStar(2)">⭐</span>
+    <span class="star-icon" onclick="toggleStar(3)">⭐</span>
+    <span class="star-icon" onclick="toggleStar(4)">⭐</span>
+  </div>
+
+  <!-- SLIDE 1: Cover -->
+  <div class="slide active">
+    <div style="margin-top: 10px;">
+      <span class="badge-tag">Lesson 1 • TPR Fun</span>
+      <h1 style="color: var(--primary);">Magic Body & Stop!</h1>
+    </div>
+    <div class="center-display">
+      <div class="giant-icon sound-pulse">🧸</div>
+      <p style="font-size: 22px; font-weight: 600; color: #555;">Stand Up • Sit Down • Jump • Stop</p>
+    </div>
+    <div class="teacher-prompt">
+      🗣️ <strong>Teacher:</strong> "Welcome! Five stars for today! Are you ready? Let's go!"
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Warm-up Greeting -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#5DADE2; color:#FFF;">Warm-up (5 Min)</span>
+      <h2>Wave & Say Hello!</h2>
+    </div>
+    <div class="center-display">
+      <div class="giant-icon">👋</div>
+      <div class="giant-title" style="color: var(--secondary);">"Hello, Teddy!"</div>
+    </div>
+    <div class="teacher-prompt">
+      🗣️ <strong>Teacher:</strong> Play *<a href="https://www.youtube.com/watch?v=tVlcKp3bWH8" target="_blank" rel="noopener noreferrer">Hello Song</a>*. Wave hands to Teddy & High-five! <strong>(Give Star 1)</strong>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Stand up & Sit down -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#48C9B0; color:#FFF;">Action Pair 1</span>
+      <h2>Up & Down Challenge</h2>
+    </div>
+    <div class="grid-2">
+      <div class="action-card card-up" onclick="playBeep()">
+        <div class="card-emoji">🧍‍♂️</div>
+        <div class="action-word" style="color: #2980B9;">Stand up!</div>
+        <p style="color:#7F8C8D; font-weight:700; margin-top:4px;">Get Tall!</p>
+      </div>
+      <div class="action-card card-down" onclick="playBeep()">
+        <div class="card-emoji">🧎‍♂️</div>
+        <div class="action-word" style="color: #27AE60;">Sit down.</div>
+        <p style="color:#7F8C8D; font-weight:700; margin-top:4px;">Get Small.</p>
+      </div>
+    </div>
+    <div class="teacher-prompt">
+      🗣️ <strong>Teacher:</strong> <a href="https://www.youtube.com/watch?v=-iMGSD_35pM&list=RD-iMGSD_35pM&start_radio=1" target="_blank" rel="noopener noreferrer">Stand up and Sit down</a> Spring up high ("Stand up!"), squat down quiet ("Sit down."). Play fast and slow!
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Jump & Stop -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#F39C12; color:#FFF;">Action Pair 2</span>
+      <h2>Rabbit & Traffic Light</h2>
+    </div>
+    <div class="grid-2">
+      <div class="action-card card-jump" onclick="playBeep()">
+        <div class="card-emoji">🐰</div>
+        <div class="action-word" style="color: #D35400;">Jump! Jump!</div>
+        <p style="color:#7F8C8D; font-weight:700; margin-top:4px;">Like a Rabbit</p>
+      </div>
+      <div class="action-card card-stop" onclick="playBuzzer()">
+        <div class="card-emoji">🛑</div>
+        <div class="action-word" style="color: #C0392B;">STOP!</div>
+        <p style="color:#7F8C8D; font-weight:700; margin-top:4px;">Freeze! Zero Motion</p>
+      </div>
+    </div>
+    <div class="teacher-prompt">
+      🗣️ <strong>Teacher:</strong><a href="https://www.youtube.com/watch?v=fPMjnlTEZwU&list=RDfPMjnlTEZwU&start_radio=1" target="_blank" rel="noopener noreferrer">Jump</a> Hop together: "Jump! Jump!" Push hand forward: "STOP!" Don't blink!
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Practice (Help Teddy) -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#AF7AC5; color:#FFF;">Game 1 (10 Min)</span>
+      <h2>Whoops! Fix Teddy!</h2>
+    </div>
+    <div class="center-display">
+      <div class="giant-icon">❓🧸</div>
+      <p style="font-size: 26px; font-weight: 800; color: #2C3E50;">Is Teddy Doing It Right?</p>
+    </div>
+    <div class="teacher-prompt">
+      🗣️ <strong>Teacher:</strong> Say "Teddy, jump!" but make Teddy sleep. Ask: "Is Teddy right? Help him!" <strong>(Give Star 2)</strong>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Half-time Break -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#52BE80; color:#FFF;">Rest (2 Min)</span>
+      <h2>Energy Fuel Station</h2>
+    </div>
+    <div class="center-display">
+      <div class="giant-icon">🥤</div>
+      <div class="giant-title" style="color: #27AE60;">Water Time!</div>
+    </div>
+    <div class="teacher-prompt">
+      🗣️ <strong>Teacher:</strong> "Drink some water, please. Gulp, gulp, gulp!" Deep breath.
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Freeze Dance Party -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#EC7063; color:#FFF;">Game 2 (10 Min)</span>
+      <h2>Freeze Dance Arena</h2>
+    </div>
+    <div class="center-display">
+      <div class="giant-icon sound-pulse">🎶 🕺 🛑</div>
+      <div class="giant-title" style="color: #C0392B;">Dance & FREEZE!</div>
+    </div>
+    <div class="teacher-prompt">
+      🗣️ <strong>Teacher:</strong> Play <a href="https://www.youtube.com/watch?v=DnEnlpNHZdo" target="_blank" rel="noopener noreferrer">Music</a> -> Jump! Cut music -> STOP! Sneak in "Sit down!" <strong>(Give Star 3)</strong>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Little Boss (Role Play) -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#F5B041; color:#FFF;">Production (10 Min)</span>
+      <h2>You Are The Boss!</h2>
+    </div>
+    <div class="center-display">
+      <div class="giant-icon">👑</div>
+      <div class="giant-title" style="color: #D35400;">Little Teacher!</div>
+      <p style="font-size: 22px; font-weight: 700; color: #7F8C8D; margin-top: 8px;">Order Mom/Dad around!</p>
+    </div>
+    <div class="teacher-prompt">
+      🗣️ <strong>Teacher:</strong> Hand him Teddy: "You tell me: Jump or Stop?" Parent acts out dramatically! <strong>(Give Star 4 & 5)</strong>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Stars & Goodbye -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#F1C40F; color:#2C3E50;">Great Job!</span>
+      <h2>Super Star Champion!</h2>
+    </div>
+    <div class="center-display">
+      <div class="giant-icon" style="filter: drop-shadow(0 10px 0 gold);">🌟</div>
+      <div class="giant-title" style="color: #F39C12;">5 Stars Complete!</div>
+    </div>
+    <div class="teacher-prompt">
+      🗣️ <strong>Teacher:</strong> Count stars, hand out a real reward sticker, sing *Bye Bye Goodbye*!
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Navigation Controls -->
+<div class="deck-controls">
+  <button class="nav-btn" onclick="prevSlide()">◀ Back</button>
+  <div class="slide-counter" id="counter">1 / 9</div>
+  <button class="nav-btn" onclick="nextSlide()">Next ▶</button>
+</div>
+
+<script>
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.getElementById('counter');
+  const stars = document.querySelectorAll('.star-icon');
+
+  function updateSlide() {
+    slides.forEach((s, idx) => {
+      s.classList.toggle('active', idx === currentSlide);
+    });
+    counter.textContent = `${currentSlide + 1} / ${slides.length}`;
+  }
+
+  function nextSlide() {
+    if (currentSlide < slides.length - 1) {
+      currentSlide++;
+      updateSlide();
+    }
+  }
+
+  function prevSlide() {
+    if (currentSlide > 0) {
+      currentSlide--;
+      updateSlide();
+    }
+  }
+
+  function toggleStar(index) {
+    stars[index].classList.toggle('earned');
+  }
+
+  // Keyboard navigation
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+    if (e.key === 'ArrowLeft') prevSlide();
+  });
+
+  // Simple web audio beeps for card taps
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  function playBeep() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(520, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  }
+
+  function playBuzzer() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+  }
+</script>
+
+</body>
+</html>

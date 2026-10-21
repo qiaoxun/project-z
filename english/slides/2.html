@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 3 & 4: Body Parts & Feelings Magic Show</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-warm: #FFFBEF;
+    --primary-coral: #FF5A5F;
+    --secondary-teal: #00A699;
+    --accent-sun: #FFB400;
+    --accent-purple: #8E44AD;
+    --accent-blue: #3498DB;
+    --dark-ink: #2C3E50;
+    --card-surface: #FFFFFF;
+    --border-stroke: #2C3E50;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body {
+    font-family: 'Fredoka', 'Nunito', sans-serif;
+    background: #181c24;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+    overflow-x: hidden;
+  }
+
+  /* 16:9 Presentation Deck Frame */
+  .deck-container {
+    width: 100%;
+    max-width: 1024px;
+    aspect-ratio: 16 / 9;
+    background: var(--bg-warm);
+    border-radius: 30px;
+    border: 6px solid var(--border-stroke);
+    box-shadow: 0 16px 0px #12161c, 0 30px 45px rgba(0,0,0,0.45);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Fullscreen Mode Optimization */
+  :fullscreen .deck-container, :-webkit-full-screen .deck-container {
+    max-width: 100vw;
+    height: 100vh;
+    aspect-ratio: auto;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  /* Slide Transitions */
+  .slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    padding: 28px 42px 20px 42px;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    position: relative;
+  }
+
+  .slide.active {
+    display: flex;
+    animation: popSlideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.25);
+  }
+
+  @keyframes popSlideIn {
+    0% { transform: scale(0.96); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* 5-Star Rewards HUD */
+  .hud-star-bar {
+    position: absolute;
+    top: 18px;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 6px 14px;
+    border-radius: 40px;
+    border: 3px solid var(--border-stroke);
+    box-shadow: 0 4px 0 var(--border-stroke);
+    z-index: 30;
+  }
+
+  .hud-label {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--dark-ink);
+    margin-right: 4px;
+    text-transform: uppercase;
+  }
+
+  .star-slot {
+    font-size: 26px;
+    filter: grayscale(100%) opacity(25%);
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.25);
+  }
+
+  .star-slot:hover {
+    transform: scale(1.2);
+  }
+
+  .star-slot.earned {
+    filter: none;
+    animation: bounceStar 0.45s ease forwards;
+  }
+
+  @keyframes bounceStar {
+    0% { transform: scale(0.4) rotate(-30deg); }
+    55% { transform: scale(1.45) rotate(15deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  /* Typography & Badges */
+  .badge-tag {
+    display: inline-block;
+    background: var(--accent-sun);
+    color: var(--dark-ink);
+    font-size: 15px;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 18px;
+    border: 2px solid var(--border-stroke);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--dark-ink);
+    text-shadow: 2px 2px 0px #FFF;
+    line-height: 1.15;
+  }
+
+  h2 {
+    font-size: 34px;
+    font-weight: 800;
+    color: var(--dark-ink);
+  }
+
+  /* Interactive Cards Grid */
+  .grid-cards-6 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 16px;
+    width: 100%;
+    max-width: 860px;
+    margin: auto 0;
+  }
+
+  .grid-cards-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 16px;
+    width: 100%;
+    max-width: 900px;
+    margin: auto 0;
+  }
+
+  .interactive-card {
+    background: var(--card-surface);
+    border: 4px solid var(--border-stroke);
+    border-radius: 20px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 0 var(--border-stroke);
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s;
+  }
+
+  .interactive-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 0 var(--border-stroke);
+  }
+
+  .interactive-card:active, .interactive-card.selected {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 var(--border-stroke);
+  }
+
+  .card-emoji {
+    font-size: 54px;
+    margin-bottom: 8px;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.25);
+  }
+
+  .interactive-card:hover .card-emoji {
+    transform: scale(1.15);
+  }
+
+  .card-label {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--dark-ink);
+  }
+
+  .card-subtext {
+    font-size: 13px;
+    font-weight: 700;
+    color: #7F8C8D;
+    margin-top: 2px;
+  }
+
+  /* Simon Says Randomizer Wheel Box */
+  .roulette-container {
+    background: #FFF;
+    border: 4px solid var(--border-stroke);
+    border-radius: 24px;
+    padding: 20px 30px;
+    box-shadow: 0 8px 0 var(--border-stroke);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: auto 0;
+    width: 100%;
+    max-width: 620px;
+  }
+
+  .roulette-display {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--primary-coral);
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .big-roulette-btn {
+    background: var(--accent-sun);
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--dark-ink);
+    border: 4px solid var(--border-stroke);
+    border-radius: 18px;
+    padding: 12px 30px;
+    box-shadow: 0 6px 0 var(--border-stroke);
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+
+  .big-roulette-btn:hover {
+    background: #FFC024;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 0 var(--border-stroke);
+  }
+
+  .big-roulette-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 var(--border-stroke);
+  }
+
+  /* Center Stage Focus Layout */
+  .stage-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: auto 0;
+  }
+
+  .stage-icon {
+    font-size: 96px;
+    filter: drop-shadow(0 6px 0 rgba(0,0,0,0.12));
+    margin-bottom: 10px;
+  }
+
+  .pulse-scale {
+    animation: gentlePulse 1.4s infinite alternate;
+  }
+
+  @keyframes gentlePulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.08) rotate(3deg); }
+  }
+
+  /* Teacher Script Pill (Bottom Prompter) */
+  .teacher-cue-dock {
+    background: #FFFFFF;
+    border: 3px dashed #7F8C8D;
+    border-radius: 16px;
+    padding: 8px 18px;
+    width: 95%;
+    font-size: 15px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    flex-shrink: 0;
+  }
+
+  .teacher-cue-dock strong {
+    color: var(--primary-coral);
+    font-size: 15px;
+  }
+
+  /* Deck Navigation Controls */
+  .deck-controls {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .nav-action-btn {
+    background: #FFF;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--dark-ink);
+    border: 3px solid var(--border-stroke);
+    border-radius: 14px;
+    padding: 8px 18px;
+    box-shadow: 0 5px 0 var(--border-stroke);
+    cursor: pointer;
+    transition: all 0.1s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .nav-action-btn:hover {
+    background: #F0F3F4;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 var(--border-stroke);
+  }
+
+  .nav-action-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 var(--border-stroke);
+  }
+
+  .slide-counter-badge {
+    font-size: 18px;
+    font-weight: 900;
+    color: #FFF;
+    letter-spacing: 1px;
+    min-width: 70px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck-container" id="deckContainer">
+  <!-- Interactive 5-Star Reward HUD -->
+  <div class="hud-star-bar" title="Click stars to award them to your student!">
+    <span class="hud-label">Rewards:</span>
+    <span class="star-slot" onclick="handleStarClick(0)">⭐</span>
+    <span class="star-slot" onclick="handleStarClick(1)">⭐</span>
+    <span class="star-slot" onclick="handleStarClick(2)">⭐</span>
+    <span class="star-slot" onclick="handleStarClick(3)">⭐</span>
+    <span class="star-slot" onclick="handleStarClick(4)">⭐</span>
+  </div>
+
+  <!-- SLIDE 1: Cover / Welcome -->
+  <div class="slide active">
+    <div>
+      <span class="badge-tag">Lesson 3 & 4 • 45-50 Min</span>
+      <h1>Body Parts & Feelings Magic Show!</h1>
+    </div>
+    <div class="stage-center">
+      <div class="stage-icon pulse-scale">🪄 👦 😊</div>
+      <p style="font-size: 22px; font-weight: 800; color: #555;">Head • Eyes • Nose • Ears • Feelings</p>
+    </div>
+    <div class="teacher-cue-dock">
+      🗣️ <strong>Teacher Cue:</strong> "Welcome back to Magic Class! Today we discover our superhero body & secret feelings! Ready for 5 stars?"
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Warm-up & Review -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#5DADE2; color:#FFF;">Warm-up (5 Min)</span>
+      <h2>Song & Flash Review!</h2>
+    </div>
+    <div class="stage-center">
+      <div class="stage-icon">⚡ 🎶 🧍</div>
+      <p style="font-size: 26px; font-weight: 900; color: var(--secondary-teal);">
+        "Stand up! Jump 3 times... STOP!"
+      </p>
+    </div>
+    <div class="teacher-cue-dock">
+      🗣️ <strong>Teacher Cue:</strong> Sing <em>Hello Song</em>, then give lightning commands (Stand up, Jump, Stop!). Award <strong>Star 1 ⭐</strong>!
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Body Parts Showcase -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#48C9B0; color:#FFF;">Vocabulary Input (10 Min)</span>
+      <h2>Touch & Listen: My Body</h2>
+    </div>
+    <div class="grid-cards-6">
+      <div class="interactive-card" onclick="tapBodyCard('Head', 550, '🙆‍♂️')">
+        <div class="card-emoji">🙆‍♂️</div>
+        <div class="card-label">Head</div>
+        <div class="card-subtext">Nod your head!</div>
+      </div>
+      <div class="interactive-card" onclick="tapBodyCard('Eyes', 600, '👀')">
+        <div class="card-emoji">👀</div>
+        <div class="card-label">Eyes</div>
+        <div class="card-subtext">Blink blink!</div>
+      </div>
+      <div class="interactive-card" onclick="tapBodyCard('Nose', 650, '👃')">
+        <div class="card-emoji">👃</div>
+        <div class="card-label">Nose</div>
+        <div class="card-subtext">Sniff sniff!</div>
+      </div>
+      <div class="interactive-card" onclick="tapBodyCard('Mouth', 700, '👄')">
+        <div class="card-emoji">👄</div>
+        <div class="card-label">Mouth</div>
+        <div class="card-subtext">Open wide: Ahh!</div>
+      </div>
+      <div class="interactive-card" onclick="tapBodyCard('Ears', 750, '👂')">
+        <div class="card-emoji">👂</div>
+        <div class="card-label">Ears</div>
+        <div class="card-subtext">Listen close!</div>
+      </div>
+      <div class="interactive-card" onclick="tapBodyCard('Hands', 800, '🙌')">
+        <div class="card-emoji">🙌</div>
+        <div class="card-label">Hands</div>
+        <div class="card-subtext">Clap clap clap!</div>
+      </div>
+    </div>
+    <div class="teacher-cue-dock">
+      🗣️ <strong>Teacher Cue:</strong> Point to your body parts dramatically! Sing: <a href="https://www.youtube.com/watch?v=RuqvGiZi0qg" target="_blank" rel="noopener noreferrer">Head, Shoulders, Knees and Toes</a>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Interactive Simon Says -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#F39C12; color:#FFF;">Game Time (10 Min)</span>
+      <h2>Simon Says: Touch Your...!</h2>
+    </div>
+    <div class="roulette-container">
+      <div class="roulette-display" id="simonDisplay">
+        <span>🎲</span> Tap the magic button!
+      </div>
+      <button class="big-roulette-btn" onclick="spinSimonCommand()">Spin New Command 🎯</button>
+    </div>
+    <div class="teacher-cue-dock">
+        <a href="https://www.youtube.com/watch?v=fGG88PxtOqY" target="_blank" rel="noopener noreferrer">Simon says</a> 
+      🗣️ <strong>Teacher Cue:</strong> Spin the command! If parent says "Simon says touch your...", child touches it. If NO "Simon says", freeze! <strong>Star 2 ⭐</strong>!
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Feeling Faces -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#9B59B6; color:#FFF;">Feelings Input (8 Min)</span>
+      <h2>How Do You Feel?</h2>
+    </div>
+    <div class="grid-cards-4">
+      <div class="interactive-card" onclick="tapFeelingCard('Happy', '😄', 'Big smile!')">
+        <div class="card-emoji">😄</div>
+        <div class="card-label" style="color:#27AE60;">Happy</div>
+        <div class="card-subtext">Show big smile!</div>
+      </div>
+      <div class="interactive-card" onclick="tapFeelingCard('Sad', '😢', 'Boo-hoo!')">
+        <div class="card-emoji">😢</div>
+        <div class="card-label" style="color:#2980B9;">Sad</div>
+        <div class="card-subtext">Wipe the tears!</div>
+      </div>
+      <div class="interactive-card" onclick="tapFeelingCard('Hungry', '😋', 'Rub tummy: Yum!')">
+        <div class="card-emoji">😋</div>
+        <div class="card-label" style="color:#E67E22;">Hungry</div>
+        <div class="card-subtext">Rub your tummy!</div>
+      </div>
+      <div class="interactive-card" onclick="tapFeelingCard('Sleepy', '🥱', 'Big yawn!')">
+        <div class="card-emoji">🥱</div>
+        <div class="card-label" style="color:#8E44AD;">Sleepy</div>
+        <div class="card-subtext">Yawn & stretch!</div>
+      </div>
+    </div>
+    <div class="teacher-cue-dock">
+      🗣️ <strong>Teacher Cue:</strong> Act out each emotion with exaggerated face & sounds. Ask: <em>"Are you happy? Show me your smile!"</em>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Half-time Break -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#2ECC71; color:#FFF;">Rest (2 Min)</span>
+      <h2>Energy Fuel Station</h2>
+    </div>
+    <div class="stage-center">
+      <div class="stage-icon">💧 🥤 🧘‍♂️</div>
+      <div style="font-size: 34px; font-weight: 900; color: #27AE60;">Drink Water & Stretch!</div>
+    </div>
+    <div class="teacher-cue-dock">
+      🗣️ <strong>Teacher Cue:</strong> "Touch your tummy, drink some water! Gulp, gulp, gulp! Relax hands and feet."
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Magic Mirror / Monster Face Game -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#E74C3C; color:#FFF;">Mimic Challenge (8 Min)</span>
+      <h2>Magic Mirror Challenge</h2>
+    </div>
+    <div class="stage-center">
+      <div class="stage-icon pulse-scale" id="mirrorEmoji">🪞 😜</div>
+      <div id="mirrorPrompt" style="font-size: 30px; font-weight: 900; color: var(--primary-coral);">
+        "Mirror, mirror: Show me HUNGRY!"
+      </div>
+    </div>
+    <button class="big-roulette-btn" onclick="nextMirrorFace()" style="margin-bottom: 10px;">Change Face! 🎭</button>
+    <div class="teacher-cue-dock">
+      🗣️ <strong>Teacher Cue:</strong> Hold up both hands as a "mirror frame". When face changes, child must mimic instantly! Award <strong>Star 3 ⭐</strong>!
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Student Boss Mode -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#F39C12; color:#FFF;">Production (8 Min)</span>
+      <h2>You Are The Master Boss!</h2>
+    </div>
+    <div class="stage-center">
+      <div class="stage-icon">👑 📢 🧸</div>
+      <div style="font-size: 32px; font-weight: 900; color: #D35400;">
+        "Touch your nose, Teacher!"
+      </div>
+      <p style="font-size: 20px; font-weight: 700; color: #666; margin-top: 6px;">
+        Child commands parent to touch body parts or make funny faces!
+      </p>
+    </div>
+    <div class="teacher-cue-dock">
+      🗣️ <strong>Teacher Cue:</strong> Hand over the toy pointer/Teddy. Let the boy command YOU! If he says "Happy", smile super big! Award <strong>Star 4 & 5 ⭐⭐</strong>!
+    </div>
+  </div>
+
+  <!-- SLIDE 9: 5-Star Grand Finale -->
+  <div class="slide">
+    <div>
+      <span class="badge-tag" style="background:#F1C40F; color:#2C3E50;">Victory Ceremony!</span>
+      <h2>Super Star Champion!</h2>
+    </div>
+    <div class="stage-center">
+      <div class="stage-icon" style="filter: drop-shadow(0 12px 0 rgba(243,156,18,0.4)); font-size: 110px;">🏆 🌟 🎊</div>
+      <div style="font-size: 40px; font-weight: 900; color: var(--accent-sun);">
+        All 5 Stars Unlocked!
+      </div>
+    </div>
+    <div class="teacher-cue-dock">
+      🗣️ <strong>Teacher Cue:</strong> Give a real golden star sticker on the back of his hand! Sing <em>Bye Bye Goodbye</em> & high-five!
+    </div>
+  </div>
+</div>
+
+<!-- Slide Deck Bottom Control Dock -->
+<div class="deck-controls">
+  <button class="nav-action-btn" onclick="prevSlide()">◀ Back</button>
+  <div class="slide-counter-badge" id="slideBadge">1 / 9</div>
+  <button class="nav-action-btn" onclick="nextSlide()">Next ▶</button>
+  <button class="nav-action-btn" onclick="toggleDeckFullscreen()">⛶ Fullscreen</button>
+</div>
+
+<script>
+  // Web Audio Sound Synthesizer (Zero External Dependencies)
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playTone(freq, type, duration, gainVal = 0.1) {
+    if (audioContext.state === 'suspended') audioContext.resume();
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+    gain.gain.setValueAtTime(gainVal, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.start();
+    osc.stop(audioContext.currentTime + duration);
+  }
+
+  function playClickSound() {
+    playTone(600, 'sine', 0.12, 0.08);
+  }
+
+  function playSuccessChime() {
+    if (audioContext.state === 'suspended') audioContext.resume();
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C - E - G - High C arpeggio
+    notes.forEach((freq, idx) => {
+      setTimeout(() => {
+        playTone(freq, 'triangle', 0.35, 0.12);
+      }, idx * 90);
+    });
+  }
+
+  function playFunnyBuzzer() {
+    playTone(180, 'sawtooth', 0.25, 0.15);
+  }
+
+  // Slide Deck Navigation
+  let currentSlideIndex = 0;
+  const slideElements = document.querySelectorAll('.slide');
+  const slideBadge = document.getElementById('slideBadge');
+  const starSlots = document.querySelectorAll('.star-slot');
+
+  function renderSlide() {
+    slideElements.forEach((el, index) => {
+      el.classList.toggle('active', index === currentSlideIndex);
+    });
+    slideBadge.textContent = `${currentSlideIndex + 1} / ${slideElements.length}`;
+  }
+
+  function nextSlide() {
+    if (currentSlideIndex < slideElements.length - 1) {
+      currentSlideIndex++;
+      playClickSound();
+      renderSlide();
+    }
+  }
+
+  function prevSlide() {
+    if (currentSlideIndex > 0) {
+      currentSlideIndex--;
+      playClickSound();
+      renderSlide();
+    }
+  }
+
+  // Keyboard navigation
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+      nextSlide();
+    } else if (e.key === 'ArrowLeft') {
+      prevSlide();
+    }
+  });
+
+  // Reward Star Logic with Sound
+  function handleStarClick(idx) {
+    const star = starSlots[idx];
+    const willEarn = !star.classList.contains('earned');
+    star.classList.toggle('earned', willEarn);
+    if (willEarn) {
+      playSuccessChime();
+    } else {
+      playClickSound();
+    }
+  }
+
+  // Fullscreen Handler
+  function toggleDeckFullscreen() {
+    const deck = document.getElementById('deckContainer');
+    if (!document.fullscreenElement) {
+      if (deck.requestFullscreen) {
+        deck.requestFullscreen();
+      } else if (deck.webkitRequestFullscreen) {
+        deck.webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }
+
+  // Card Interactive Trigger Handlers
+  function tapBodyCard(part, freq, emoji) {
+    playTone(freq, 'sine', 0.2, 0.12);
+  }
+
+  function tapFeelingCard(feeling, emoji, actionPrompt) {
+    playSuccessChime();
+  }
+
+  // Simon Says Randomizer
+  const simonCommands = [
+    { text: "Simon says: Touch your NOSE! 👃", sound: 650 },
+    { text: "Simon says: Touch your EARS! 👂", sound: 750 },
+    { text: "Simon says: Touch your HEAD! 🙆‍♂️", sound: 550 },
+    { text: "Simon says: Touch your EYES! 👀", sound: 600 },
+    { text: "Simon says: Clap your HANDS! 🙌", sound: 800 },
+    { text: "Touch your NOSE! (Freeze! Simon didn't say!) 🛑", sound: 220, trap: true }
+  ];
+
+  function spinSimonCommand() {
+    const display = document.getElementById('simonDisplay');
+    const randomPick = simonCommands[Math.floor(Math.random() * simonCommands.length)];
+    display.textContent = randomPick.text;
+    if (randomPick.trap) {
+      playFunnyBuzzer();
+    } else {
+      playTone(randomPick.sound, 'triangle', 0.25, 0.12);
+    }
+  }
+
+  // Magic Mirror Face Randomizer
+  const mirrorFaces = [
+    { label: '"Mirror, mirror: Show me HAPPY! 😄"', emoji: '🪞 😄' },
+    { label: '"Mirror, mirror: Show me SAD! 😢"', emoji: '🪞 😢' },
+    { label: '"Mirror, mirror: Show me HUNGRY! 😋"', emoji: '🪞 😋' },
+    { label: '"Mirror, mirror: Show me SLEEPY! 🥱"', emoji: '🪞 🥱' }
+  ];
+  let mirrorIndex = 0;
+
+  function nextMirrorFace() {
+    mirrorIndex = (mirrorIndex + 1) % mirrorFaces.length;
+    document.getElementById('mirrorPrompt').textContent = mirrorFaces[mirrorIndex].label;
+    document.getElementById('mirrorEmoji').textContent = mirrorFaces[mirrorIndex].emoji;
+    playSuccessChime();
+  }
+</script>
+</body>
+</html>
