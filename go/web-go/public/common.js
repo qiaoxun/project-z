@@ -41,7 +41,19 @@
       confirm_leave_battle: '对战进行中，切换模式将结束当前对局。确定切换吗？',
       confirm_end_study: '练习进行中，切换模式将结束本次练习。确定切换吗？',
       student_offline: '该学生已离线，无法开始对战',
-      illegal: '这一步不能下在这里'
+      illegal: '这一步不能下在这里',
+      count_libs: '数气',
+      count_hint: '数气模式：依次点击棋盘上的点，会显示 1、2、3…（点已有数字的点可删除它），再点「数气」退出并清除',
+      import_sgf: '导入棋谱',
+      import_tip: '用法一：在 101围棋网等已登录的题目/棋谱页面，点书签栏里的「复制棋谱」书签，SGF 会复制到剪贴板，回到这里粘贴导入。用法二：直接把 SGF 文本粘贴到下面。导入后可用「上一步/下一步」回放，也可在学习模式点「开始练习」发给学生。',
+      import_bookmark: '📌 复制棋谱（拖到书签栏）',
+      import_copy_bm: '复制书签代码',
+      bm_copied: '书签代码已复制：在浏览器书签管理器新建书签，把它粘贴到网址栏',
+      import_ph: '在此粘贴 SGF / 棋谱文本…',
+      import_do: '导入到棋盘',
+      import_close: '关闭',
+      import_ok: '导入成功：{size} 路 · 摆子 {setup} · 着手 {moves}',
+      import_fail: '未能识别棋谱，请确认粘贴的是包含 (;GM 或 (;FF 开头的 SGF 文本'
     },
     en: {
       app_title: 'Go Classroom',
@@ -81,7 +93,19 @@
       confirm_leave_battle: 'A battle is in progress. Switching mode will end it. Continue?',
       confirm_end_study: 'Practice is in progress. Switching mode will end it. Continue?',
       student_offline: 'That student is offline',
-      illegal: 'Cannot play there'
+      illegal: 'Cannot play there',
+      count_libs: 'Count liberties',
+      count_hint: 'Counting mode: tap points to stamp 1, 2, 3… (tap a stamped point to remove it). Tap "Count liberties" again to exit and clear.',
+      import_sgf: 'Import SGF',
+      import_tip: 'Usage 1: on a logged-in 101weiqi problem page, click the "Copy SGF" bookmark, then paste here. Usage 2: paste raw SGF text below. After import you can replay with Prev/Next, or send it to students via "Start practice" in Study mode.',
+      import_bookmark: '📌 Copy SGF (drag to bookmarks bar)',
+      import_copy_bm: 'Copy bookmark code',
+      bm_copied: 'Bookmark code copied — create a new bookmark and paste it into the URL field',
+      import_ph: 'Paste SGF / game record text here…',
+      import_do: 'Import to board',
+      import_close: 'Close',
+      import_ok: 'Imported: {size} board · {setup} stones · {moves} moves',
+      import_fail: 'Could not read the record — make sure the text contains SGF starting with (;GM or (;FF'
     }
   };
 
@@ -105,6 +129,10 @@
     list = scope.querySelectorAll('[data-i18n-ph]');
     for (var j = 0; j < list.length; j++) {
       list[j].placeholder = t(list[j].getAttribute('data-i18n-ph'));
+    }
+    list = scope.querySelectorAll('[data-i18n-title]');
+    for (var k = 0; k < list.length; k++) {
+      list[k].title = t(list[k].getAttribute('data-i18n-title'));
     }
     var btn = document.getElementById('lang-btn');
     if (btn) btn.textContent = (lang === 'zh') ? 'EN' : '中文';

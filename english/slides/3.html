@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5岁幼儿英语互动课件 - 颜色与数字</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      font-family: 'Comic Sans MS', 'Bubblegum Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #111;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    /* 16:9 课件画布 */
+    .deck-container {
+      position: relative;
+      width: 100vw;
+      height: 56.25vw; /* 16:9 比例 */
+      max-height: 100vh;
+      max-width: 177.78vh;
+      background: #ffffff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    }
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 60px;
+      text-align: center;
+      background-size: cover;
+      background-position: center;
+    }
+    .slide.active {
+      display: flex;
+      animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* 标题与文字样式 */
+    h1 {
+      font-size: 3.4rem;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    h2 {
+      font-size: 2.2rem;
+      color: #555;
+      margin-bottom: 25px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 8px 24px;
+      background: #ff5722;
+      color: #fff;
+      font-size: 1.4rem;
+      border-radius: 30px;
+      margin-bottom: 15px;
+    }
+    .hint {
+      font-size: 1.5rem;
+      color: #777;
+      margin-top: 25px;
+      background: rgba(255, 255, 255, 0.88);
+      padding: 10px 24px;
+      border-radius: 40px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    /* YouTube 视频按钮卡片 */
+    .yt-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #FF0000;
+      color: #fff;
+      text-decoration: none;
+      font-size: 1.4rem;
+      font-weight: bold;
+      padding: 12px 28px;
+      border-radius: 35px;
+      margin-top: 15px;
+      box-shadow: 0 6px 18px rgba(255, 0, 0, 0.35);
+      transition: transform 0.2s, background 0.2s;
+    }
+    .yt-btn:hover {
+      background: #CC0000;
+      transform: scale(1.05);
+    }
+
+    /* 卡片网格布局 */
+    .card-grid {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      width: 100%;
+      margin: 15px 0;
+    }
+    .card {
+      flex: 1;
+      max-width: 280px;
+      background: #fff;
+      border-radius: 24px;
+      padding: 25px 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 6px solid transparent;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover, .card:active {
+      transform: translateY(-8px) scale(1.05);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+    .card .icon {
+      font-size: 4.8rem;
+      margin-bottom: 12px;
+    }
+    .card .word {
+      font-size: 2.2rem;
+      font-weight: 800;
+    }
+
+    /* 混色公式区 */
+    .mix-formula {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      font-size: 2.6rem;
+      font-weight: bold;
+      margin: 12px 0;
+      background: white;
+      padding: 12px 40px;
+      border-radius: 30px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    }
+
+    /* 导航操作条 */
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      right: 30px;
+      display: flex;
+      gap: 15px;
+      z-index: 100;
+    }
+    .nav-btn {
+      background: rgba(0, 0, 0, 0.4);
+      color: white;
+      border: none;
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      font-size: 1.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .nav-btn:hover {
+      background: rgba(0, 0, 0, 0.7);
+      transform: scale(1.1);
+    }
+    .page-indicator {
+      position: absolute;
+      bottom: 25px;
+      left: 35px;
+      font-size: 1.3rem;
+      color: #666;
+      font-weight: bold;
+      background: rgba(255,255,255,0.7);
+      padding: 6px 16px;
+      border-radius: 20px;
+    }
+
+    /* 底色 */
+    #slide1 { background: linear-gradient(135deg, #FFDEE9 0%, #B5FFFC 100%); }
+    #slide2 { background: #FFF9E6; }
+    #slide3 { background: #F0FFF4; }
+    #slide4 { background: #FAF5FF; }
+    #slide5 { background: #FFF5F5; }
+    #slide6 { background: linear-gradient(135deg, #FFE600 0%, #FFA700 100%); }
+
+    #slide7 { background: linear-gradient(135deg, #D4FC79 0%, #96E6A1 100%); }
+    #slide8 { background: #F7FAFC; }
+    #slide9 { background: #EDF2F7; }
+    #slide10 { background: #EBF8FF; }
+    #slide11 { background: #FEFCBF; }
+    #slide12 { background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%); }
+  </style>
+</head>
+<body>
+
+  <div class="deck-container">
+    
+    <!-- ================= 第5周：颜色 (Slides 1 - 6) ================= -->
+    
+    <!-- Slide 1: 封面 + 视频热身链接 -->
+    <div class="slide active" id="slide1">
+      <span class="badge">Week 5 • 颜色王国</span>
+      <h1>🎨 Magic Colors!</h1>
+      <h2>走进五彩缤纷的神奇世界</h2>
+      <div style="font-size: 5rem; margin: 10px 0;">🌈 🪄 🦄</div>
+      
+      <!-- YouTube 热身视频链接 -->
+      <a class="yt-btn" href="http://www.youtube.com/watch?v=jYAWf8Y91hA" target="_blank" rel="noopener">
+        ▶ 播放热身儿歌：《I See Something Blue》
+      </a>
+      
+      <p class="hint">👉 听完儿歌，按空格键或右下角箭头开启探险！</p>
+    </div>
+
+    <!-- Slide 2: 三原色 -->
+    <div class="slide" id="slide2">
+      <h2>三原色：找一找，摸一摸！</h2>
+      <div class="card-grid">
+        <div class="card" style="border-color: #FF4757;">
+          <div class="icon">🍎</div>
+          <div class="word" style="color: #FF4757;">Red</div>
+          <div style="font-size: 1.3rem; color: #888;">红色</div>
+        </div>
+        <div class="card" style="border-color: #FFA502;">
+          <div class="icon">🍌</div>
+          <div class="word" style="color: #FFA502;">Yellow</div>
+          <div style="font-size: 1.3rem; color: #888;">黄色</div>
+        </div>
+        <div class="card" style="border-color: #1E90FF;">
+          <div class="icon">🐳</div>
+          <div class="word" style="color: #1E90FF;">Blue</div>
+          <div style="font-size: 1.3rem; color: #888;">蓝色</div>
+        </div>
+      </div>
+      <p class="hint">🗣️ 家长提问：“Where is Blue? Touch the Blue whale!”</p>
+    </div>
+
+    <!-- Slide 3: 魔法混色 -->
+    <div class="slide" id="slide3">
+      <h2>神奇混色小实验室 🧪</h2>
+      <div class="mix-formula">
+        <span style="color:#FFA502;">Yellow 🍌</span> + <span style="color:#1E90FF;">Blue 🐳</span> = <span style="color:#2ED573;">Green 🐸 绿色</span>
+      </div>
+      <div class="mix-formula">
+        <span style="color:#FF4757;">Red 🍎</span> + <span style="color:#FFA502;">Yellow 🍌</span> = <span style="color:#FF7F50;">Orange 🍊 橙色</span>
+      </div>
+      <div class="mix-formula">
+        <span style="color:#1E90FF;">Blue 🐳</span> + <span style="color:#FF4757;">Red 🍎</span> = <span style="color:#9B59B6;">Purple 🍇 紫色</span>
+      </div>
+      <p class="hint">✨ 变魔术啦！黄色加蓝色变成了什么？</p>
+    </div>
+
+    <!-- Slide 4: 黑、白、粉 -->
+    <div class="slide" id="slide4">
+      <h2>可爱的小动物颜色</h2>
+      <div class="card-grid">
+        <div class="card" style="border-color: #2F3542;">
+          <div class="icon">🐈‍⬛</div>
+          <div class="word" style="color: #2F3542;">Black</div>
+          <div style="font-size: 1.3rem; color: #888;">黑色小猫</div>
+        </div>
+        <div class="card" style="border-color: #A4B0BE;">
+          <div class="icon">🐑</div>
+          <div class="word" style="color: #57606F;">White</div>
+          <div style="font-size: 1.3rem; color: #888;">白色小羊</div>
+        </div>
+        <div class="card" style="border-color: #FF9FF3;">
+          <div class="icon">🦩</div>
+          <div class="word" style="color: #FF6B81;">Pink</div>
+          <div style="font-size: 1.3rem; color: #888;">粉色火烈鸟</div>
+        </div>
+      </div>
+      <p class="hint">🐾 模仿一下小动物的叫声，再说出它的颜色吧！</p>
+    </div>
+
+    <!-- Slide 5: 互动游戏 (I Spy) -->
+    <div class="slide" id="slide5">
+      <h2>寻宝小侦探：I Spy! 🔍</h2>
+      <p style="font-size: 1.8rem; margin-bottom: 15px;">“What color is it? It is...”</p>
+      <div style="font-size: 4.8rem; letter-spacing: 25px; margin: 15px 0;">
+        🍓 🍋 🚙 🥦 🍇 🐷
+      </div>
+      <p class="hint">🎯 家长发令：“Point to something Pink!” 孩子拍中即得分！</p>
+    </div>
+
+    <!-- Slide 6: 第5周通关奖励 -->
+    <div class="slide" id="slide6">
+      <div style="font-size: 6rem;">🏆 ⭐ 🎖️</div>
+      <h1 style="color: #D35400;">Super Color Master!</h1>
+      <h2>太棒了！你已经是颜色小达人啦！</h2>
+      <p class="hint">🎉 恭喜通关！奖励贴上一枚彩色勋章贴纸！</p>
+      <a class="yt-btn" href="https://www.youtube.com/watch?v=zxIpA5nF_LY&list=RDzxIpA5nF_LY&start_radio=1" target="_blank" rel="noopener">
+        ▶ 播放通关庆祝视频
+      </a>
+    </div>
+
+    <!-- ================= 第6周：基础数字 (Slides 7 - 12) ================= -->
+
+    <!-- Slide 7: 封面 + 视频热身链接 -->
+    <div class="slide" id="slide7">
+      <span class="badge" style="background:#27ae60;">Week 6 • 数字特工队</span>
+      <h1>🔢 Number Adventure!</h1>
+      <h2>一起来认识数字 1 到 10</h2>
+      <div style="font-size: 5rem; margin: 10px 0;">🚂 1️⃣ 2️⃣ 3️⃣ 💨</div>
+      
+      <!-- YouTube 热身视频链接 -->
+      <a class="yt-btn" href="http://www.youtube.com/watch?v=pTLtcno5_cY" target="_blank" rel="noopener">
+        ▶ 播放热身儿歌：《Seven Steps》
+      </a>
+
+      <p class="hint">👉 数字特工队集合完毕，准备出发！</p>
+    </div>
+
+    <!-- Slide 8: 数字 1, 2, 3 -->
+    <div class="slide" id="slide8">
+      <h2>数字小手指：1, 2, 3</h2>
+      <div class="card-grid">
+        <div class="card" style="border-color: #E74C3C;">
+          <div class="word" style="font-size: 3.8rem; color: #E74C3C;">1</div>
+          <div class="icon">☀️</div>
+          <div class="word">One</div>
+          <div style="font-size: 1.2rem; color: #888;">1个太阳</div>
+        </div>
+        <div class="card" style="border-color: #3498DB;">
+          <div class="word" style="font-size: 3.8rem; color: #3498DB;">2</div>
+          <div class="icon">👟👟</div>
+          <div class="word">Two</div>
+          <div style="font-size: 1.2rem; color: #888;">2只鞋子</div>
+        </div>
+        <div class="card" style="border-color: #F1C40F;">
+          <div class="word" style="font-size: 3.8rem; color: #F1C40F;">3</div>
+          <div class="icon">🎈🎈🎈</div>
+          <div class="word">Three</div>
+          <div style="font-size: 1.2rem; color: #888;">3个气球</div>
+        </div>
+      </div>
+      <p class="hint">👏 跟我做：“Clap 1! Clap 2! Clap 3!” 拍手3下！</p>
+    </div>
+
+    <!-- Slide 9: 数字 4 与 5 -->
+    <div class="slide" id="slide9">
+      <h2>数字 4 与 5：击掌力量！</h2>
+      <div class="card-grid" style="max-width: 700px;">
+        <div class="card" style="border-color: #E67E22;">
+          <div class="word" style="font-size: 4rem; color: #E67E22;">4</div>
+          <div class="icon">🚗</div>
+          <div class="word">Four</div>
+          <div style="font-size: 1.2rem; color: #888;">4个轮子</div>
+        </div>
+        <div class="card" style="border-color: #2ECC71;">
+          <div class="word" style="font-size: 4rem; color: #2ECC71;">5</div>
+          <div class="icon">🖐️</div>
+          <div class="word">Five</div>
+          <div style="font-size: 1.2rem; color: #888;">High Five!</div>
+        </div>
+      </div>
+      <p class="hint">🖐️ 伸出手掌和大声喊：“High Five!” 一起击掌！</p>
+    </div>
+
+    <!-- Slide 10: 数字 6 - 10 排队 -->
+    <div class="slide" id="slide10">
+      <h2>小鸭子排队点数：6 到 10</h2>
+      <div style="font-size: 3.2rem; margin: 25px 0; display: flex; justify-content: center; gap: 20px;">
+        <div>🐥<br><span style="font-size: 1.9rem; font-weight: bold;">6 Six</span></div>
+        <div>🐥<br><span style="font-size: 1.9rem; font-weight: bold;">7 Seven</span></div>
+        <div>🐥<br><span style="font-size: 1.9rem; font-weight: bold;">8 Eight</span></div>
+        <div>🐥<br><span style="font-size: 1.9rem; font-weight: bold;">9 Nine</span></div>
+        <div>🐥<br><span style="font-size: 1.9rem; font-weight: bold;">10 Ten</span></div>
+      </div>
+      <p class="hint">🚀 倒数发射游戏：“3, 2, 1... Blast Off!” 跳起来！</p>
+    </div>
+
+    <!-- Slide 11: 颜色 + 数字大联动 -->
+    <div class="slide" id="slide11">
+      <h2>终极挑战：数一数，是什么？</h2>
+      <div class="card-grid">
+        <div class="card">
+          <div style="font-size: 3.2rem;">🍓🍓🍓</div>
+          <div class="word" style="color: #E74C3C; font-size: 1.7rem; margin-top: 10px;">Three Red Strawberries</div>
+        </div>
+        <div class="card">
+          <div style="font-size: 3.2rem;">🚙🚙</div>
+          <div class="word" style="color: #3498DB; font-size: 1.7rem; margin-top: 10px;">Two Blue Cars</div>
+        </div>
+        <div class="card">
+          <div style="font-size: 3.2rem;">⭐</div>
+          <div class="word" style="color: #F39C12; font-size: 1.7rem; margin-top: 10px;">One Yellow Star</div>
+        </div>
+      </div>
+      <p class="hint">🗣️ 问问宝贝：“How many blue cars? Let's count: One, Two!”</p>
+    </div>
+
+    
+
+    <!-- Slide 12: 结业庆祝 -->
+    <div class="slide" id="slide12">
+      <div style="font-size: 6.5rem;">🎉 🌟 👑</div>
+      <h1 style="color: #9B59B6;">You Are A Champion!</h1>
+      <h2>两周特训大成功！你太棒啦！</h2>
+      <p class="hint">🏅 颁发“特工证书”，本周目标达成！</p>
+      <a class="yt-btn" href="https://www.youtube.com/watch?v=V_lgJgBbqWE&list=RDV_lgJgBbqWE&start_radio=1" target="_blank" rel="noopener">
+        ▶ 播放热身儿歌
+      </a>
+    </div>
+
+    <!-- 底部控制按钮与页码 -->
+    <div class="page-indicator" id="pageIndicator">1 / 12</div>
+    <div class="controls">
+      <button class="nav-btn" id="prevBtn" title="上一页">◀</button>
+      <button class="nav-btn" id="nextBtn" title="下一页">▶</button>
+    </div>
+
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const indicator = document.getElementById('pageIndicator');
+    let currentIndex = 0;
+
+    function showSlide(index) {
+      slides.forEach((s, i) => {
+        s.classList.toggle('active', i === index);
+      });
+      indicator.textContent = `${index + 1} / ${slides.length}`;
+    }
+
+    function nextSlide() {
+      if (currentIndex < slides.length - 1) {
+        currentIndex++;
+        showSlide(currentIndex);
+      }
+    }
+
+    function prevSlide() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        showSlide(currentIndex);
+      }
+    }
+
+    nextBtn.addEventListener('click', nextSlide);
+    prevBtn.addEventListener('click', prevSlide);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      }
+    });
+  </script>
+</body>
+</html>

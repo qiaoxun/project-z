@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌟 围棋魔法乐园：吃子大冒险！(5岁启蒙课件)</title>
+  <style>
+    :root {
+      --primary: #FF7B54;
+      --secondary: #FFB26B;
+      --bg: #FFFBEB;
+      --board-color: #E6B15C;
+      --text: #2C3E50;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Comic Sans MS", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      padding: 24px;
+      background: linear-gradient(135deg, #FFB26B, #FF7B54);
+      color: white;
+      border-radius: 24px;
+      box-shadow: 0 8px 16px rgba(255, 123, 84, 0.2);
+      margin-bottom: 30px;
+    }
+
+    header h1 { font-size: 2.2rem; margin-bottom: 8px; }
+    header p { font-size: 1.1rem; opacity: 0.95; }
+
+    .step-card {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+      border-left: 8px solid var(--primary);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .step-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.4rem;
+      color: #D35400;
+    }
+
+    .badge {
+      background: var(--secondary);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+    }
+
+    .story-box {
+      background: #FFF9E6;
+      border: 2px dashed #F1C40F;
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 1.05rem;
+    }
+
+    .story-box strong { color: #E67E22; }
+
+    .interactive-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: center;
+      justify-content: center;
+      background: #FAFAFA;
+      padding: 20px;
+      border-radius: 16px;
+    }
+
+    /* 迷你棋盘组件 */
+    .mini-board {
+      width: 220px;
+      height: 220px;
+      background-color: var(--board-color);
+      border-radius: 12px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      position: relative;
+      padding: 10px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.15), 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .grid-cell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 十字网格线 */
+    .grid-cell::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background-color: #8C531B;
+      z-index: 1;
+    }
+    .grid-cell::after {
+      content: '';
+      position: absolute;
+      height: 100%;
+      width: 2px;
+      background-color: #8C531B;
+      z-index: 1;
+    }
+
+    /* 棋子设计 */
+    .stone {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      position: relative;
+      z-index: 2;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .stone:hover { transform: scale(1.1); }
+    .stone.black {
+      background: radial-gradient(circle at 35% 35%, #555, #111);
+    }
+    .stone.white {
+      background: radial-gradient(circle at 35% 35%, #fff, #ddd);
+      border: 1px solid #ccc;
+    }
+    .stone.breath {
+      background: rgba(46, 204, 113, 0.4);
+      border: 2px dashed #27AE60;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(0.9); }
+    }
+
+    .btn-action {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-action:hover {
+      background: #E55B33;
+      transform: translateY(-2px);
+    }
+    .btn-action:active { transform: translateY(0); }
+
+    .action-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    /* 课后互动小游戏卡片 */
+    .quiz-card {
+      background: #E8F8F5;
+      border: 3px solid #A3E4D7;
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+    }
+    .quiz-card h3 { color: #16A085; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>🐼 围棋魔法乐园：吃子大冒险！</h1>
+      <p>给5岁小小魔法师的趣味吃子互动课件</p>
+    </header>
+
+    <!-- 第1关：认识“气” -->
+    <section class="step-card">
+      <div class="step-title">
+        <span class="badge">第 1 关</span>
+        <h2>棋子会呼吸？小嘴巴“气”！</h2>
+      </div>
+      <div class="story-box">
+        🗣️ <strong>故事魔法：</strong> 棋盘上的每颗小棋子都是活的哦！它们周围连着的小十字线，就是它<strong>呼吸的小嘴巴</strong>！
+        如果它的嘴巴全被堵住，不能呼吸，就要回到盒子里睡觉啦（这叫<strong>提子</strong>）！
+      </div>
+      <div class="interactive-area">
+        <div class="mini-board" id="board1">
+          <!-- 动态渲染棋盘 -->
+        </div>
+        <div class="action-panel">
+          <p>👉 绿色虚线圈就是小白呼吸的<strong>4张小嘴巴</strong>！</p>
+          <button class="btn-action" onclick="playStep1()">按一下：派小黑堵住嘴巴！</button>
+          <span id="step1-status" style="font-weight:bold; color:#E67E22;"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 第2关：双打吃 -->
+    <section class="step-card">
+      <div class="step-title">
+        <span class="badge">第 2 关</span>
+        <h2>超能魔法：双打吃（一箭双雕）</h2>
+      </div>
+      <div class="story-box">
+        🗣️ <strong>故事魔法：</strong> 草地上有两只淘气的小白兔，它们各只剩最后一张嘴巴啦！
+        小黑扔出一颗“魔法石”，站在中间<strong>同时指着两只小兔</strong>大喊：“抓小兔啦！”小白兔只能跑一只，另一只归你啦！
+      </div>
+      <div class="interactive-area">
+        <div class="mini-board" id="board2"></div>
+        <div class="action-panel">
+          <p>👉 找找看，哪一个点能<strong>同时</strong>吃到两颗小白子？</p>
+          <button class="btn-action" onclick="playStep2()">施展魔法：双打吃！</button>
+          <span id="step2-status" style="font-weight:bold; color:#27AE60;"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 第3关：门吃与抱吃 -->
+    <section class="step-card">
+      <div class="step-title">
+        <span class="badge">第 3 关</span>
+        <h2>两扇大门关一关：门吃！</h2>
+      </div>
+      <div class="story-box">
+        🗣️ <strong>故事魔法：</strong> 两颗黑子像两扇大门柱子，小白想从门缝里溜出去。
+        这时候小黑<strong>“砰！”</strong>地一声把门关上，小白撞门上，无路可逃被抓住啦！
+      </div>
+      <div class="interactive-area">
+        <div class="mini-board" id="board3"></div>
+        <div class="action-panel">
+          <p>👉 小白想往前冲，小黑快关门！</p>
+          <button class="btn-action" onclick="playStep3()">砰！关上大门！</button>
+          <span id="step3-status" style="font-weight:bold; color:#C0392B;"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 第4关：倒扑 -->
+    <section class="step-card">
+      <div class="step-title">
+        <span class="badge">第 4 关</span>
+        <h2>聪明小侦探：倒扑（送糖果）</h2>
+      </div>
+      <div class="story-box">
+        🗣️ <strong>故事魔法：</strong> 大老虎张大嘴巴（虎口）。勇敢的小黑化身“糖果侦察兵”主动跳进嘴里：
+        “给你吃！”大白一吃掉，嘴巴立刻塞满没气了，小黑立刻反手一网全部捞走！
+      </div>
+      <div class="interactive-area">
+        <div class="mini-board" id="board4"></div>
+        <div class="action-panel">
+          <p>👉 敢不敢把小黑送进危险的虎口？</p>
+          <button class="btn-action" onclick="playStep4()">第一步：送小黑当诱饵！</button>
+          <span id="step4-status" style="font-weight:bold; color:#8E44AD;"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 教师/家长互动指引 -->
+    <div class="quiz-card">
+      <h3>🎉 老师与家长互动通关口诀</h3>
+      <p style="font-size:1.1rem; line-height:2;">
+        “一颗棋子四张嘴，堵住最后叫<strong>打吃</strong>！<br>
+        两只兔子两边跑，中间一落<strong>双打吃</strong>！<br>
+        小羊扭头下楼梯，那是好玩的<strong>扭羊头（征子）</strong>！<br>
+        戴上帽子跑不脱，神奇法宝叫<strong>枷吃</strong>！”
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // 渲染空的 5x5 棋盘格子
+    function createBoard(id) {
+      const board = document.getElementById(id);
+      board.innerHTML = '';
+      for (let i = 0; i < 25; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'grid-cell';
+        cell.id = `${id}-cell-${i}`;
+        board.appendChild(cell);
+      }
+    }
+
+    // 初始化第1关
+    function initStep1() {
+      createBoard('board1');
+      // 中心白子 (2,2) -> index 12
+      document.getElementById('board1-cell-12').innerHTML = '<div class="stone white"></div>';
+      // 4张嘴巴: (1,2)->7, (3,2)->17, (2,1)->11, (2,3)->13
+      [7, 17, 11, 13].forEach(idx => {
+        document.getElementById(`board1-cell-${idx}`).innerHTML = '<div class="stone breath"></div>';
+      });
+    }
+
+    let step1Count = 0;
+    function playStep1() {
+      const breaths = [7, 11, 13, 17];
+      if (step1Count < 3) {
+        const idx = breaths[step1Count];
+        document.getElementById(`board1-cell-${idx}`).innerHTML = '<div class="stone black"></div>';
+        step1Count++;
+        document.getElementById('step1-status').innerText = `堵住第 ${step1Count} 张嘴！`;
+        if (step1Count === 3) {
+          document.getElementById('step1-status').innerText = `还剩最后1张嘴！叫：“打吃！”`;
+        }
+      } else if (step1Count === 3) {
+        document.getElementById(`board1-cell-17`).innerHTML = '<div class="stone black"></div>';
+        document.getElementById('board1-cell-12').innerHTML = ''; // 提子
+        document.getElementById('step1-status').innerText = `嘴巴捂完啦！白子被提走回家啦！🎉`;
+        step1Count++;
+      } else {
+        step1Count = 0;
+        initStep1();
+        document.getElementById('step1-status').innerText = `再来试一次！`;
+      }
+    }
+
+    // 初始化第2关：双打吃
+    function initStep2() {
+      createBoard('board2');
+      // 两颗快没气的白子: index 7, index 11
+      document.getElementById('board2-cell-7').innerHTML = '<div class="stone white"></div>';
+      document.getElementById('board2-cell-11').innerHTML = '<div class="stone white"></div>';
+      // 黑子包围
+      [2, 6, 8, 10, 16].forEach(idx => {
+        document.getElementById(`board2-cell-${idx}`).innerHTML = '<div class="stone black"></div>';
+      });
+      // 魔法关键点: index 12 (交叉中心点)
+      document.getElementById('board2-cell-12').innerHTML = '<div class="stone breath"></div>';
+    }
+
+    let step2Done = false;
+    function playStep2() {
+      if (!step2Done) {
+        document.getElementById('board2-cell-12').innerHTML = '<div class="stone black"></div>';
+        document.getElementById('step2-status').innerText = '魔法生效！双打吃！两只小兔逃不掉啦！';
+        step2Done = true;
+      } else {
+        step2Done = false;
+        initStep2();
+        document.getElementById('step2-status').innerText = '';
+      }
+    }
+
+    // 初始化第3关：门吃
+    function initStep3() {
+      createBoard('board3');
+      // 两扇黑门柱子: index 6, index 8
+      document.getElementById('board3-cell-6').innerHTML = '<div class="stone black"></div>';
+      document.getElementById('board3-cell-8').innerHTML = '<div class="stone black"></div>';
+      // 小白准备往 index 7 冲
+      document.getElementById('board3-cell-12').innerHTML = '<div class="stone white"></div>';
+      // 门框口标记
+      document.getElementById('board3-cell-7').innerHTML = '<div class="stone breath"></div>';
+    }
+
+    let step3Done = false;
+    function playStep3() {
+      if (!step3Done) {
+        document.getElementById('board3-cell-7').innerHTML = '<div class="stone black"></div>';
+        document.getElementById('step3-status').innerText = '砰！大门关上，小白撞门被抓住啦！';
+        step3Done = true;
+      } else {
+        step3Done = false;
+        initStep3();
+        document.getElementById('step3-status').innerText = '';
+      }
+    }
+
+    // 初始化第4关：倒扑
+    function initStep4() {
+      createBoard('board4');
+      // 白子摆成虎口形
+      [11, 7, 13].forEach(idx => {
+        document.getElementById(`board4-cell-${idx}`).innerHTML = '<div class="stone white"></div>';
+      });
+      // 外面黑子包围
+      [6, 8, 16, 17, 18, 10, 14].forEach(idx => {
+        document.getElementById(`board4-cell-${idx}`).innerHTML = '<div class="stone black"></div>';
+      });
+      // 虎口正中央: index 12
+      document.getElementById('board4-cell-12').innerHTML = '<div class="stone breath"></div>';
+    }
+
+    let step4Phase = 0;
+    function playStep4() {
+      if (step4Phase === 0) {
+        // 小黑跳进虎口
+        document.getElementById('board4-cell-12').innerHTML = '<div class="stone black"></div>';
+        document.getElementById('step4-status').innerText = '小黑英勇跳进大灰狼嘴里送糖果！';
+        step4Phase = 1;
+      } else if (step4Phase === 1) {
+        // 白子提吃黑子
+        document.getElementById('board4-cell-12').innerHTML = '<div class="stone white"></div>';
+        document.getElementById('step4-status').innerText = '大灰狼吃了糖果，但肚子撑圆了只剩1口气！';
+        step4Phase = 2;
+      } else if (step4Phase === 2) {
+        // 黑子反提白棋4颗
+        [11, 7, 13, 12].forEach(idx => {
+          document.getElementById(`board4-cell-${idx}`).innerHTML = '';
+        });
+        document.getElementById('board4-cell-12').innerHTML = '<div class="stone black"></div>';
+        document.getElementById('step4-status').innerText = '反手一网全抓走！这就叫“倒扑”！🎉';
+        step4Phase = 3;
+      } else {
+        step4Phase = 0;
+        initStep4();
+        document.getElementById('step4-status').innerText = '';
+      }
+    }
+
+    // 页面加载完成后统一初始化
+    window.onload = function() {
+      initStep1();
+      initStep2();
+      initStep3();
+      initStep4();
+    };
+  </script>
+</body>
+</html>

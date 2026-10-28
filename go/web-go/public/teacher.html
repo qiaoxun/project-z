@@ -7,7 +7,7 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/style.css">
 </head>
-<body>
+<body class="teacher">
   <header class="topbar">
     <div class="brand">
       <span class="mini-stone black"></span><span class="mini-stone white"></span>
@@ -61,6 +61,9 @@
           <button class="warn" id="pass-btn" data-i18n="pass"></button>
           <button class="danger" id="clear-btn" data-i18n="clear_board"></button>
         </div>
+        <div class="row">
+          <button class="ghost" id="import-btn" data-i18n="import_sgf"></button>
+        </div>
       </section>
 
       <!-- 对战模式 -->
@@ -113,19 +116,15 @@
       </section>
 
       <section class="panel">
-        <div class="turn-indicator">
-          <div class="turn-stone black" id="turn-stone"></div>
-          <span id="turn-text"></span>
-        </div>
-        <div class="capture-row">
-          <div class="capture-stone black"></div>
-          <span><span data-i18n="black"></span> <span data-i18n="captured"></span>:
-            <span id="cap-black">0</span></span>
-        </div>
-        <div class="capture-row">
-          <div class="capture-stone white"></div>
-          <span><span data-i18n="white"></span> <span data-i18n="captured"></span>:
-            <span id="cap-white">0</span></span>
+        <div class="status-row">
+          <div class="turn-indicator">
+            <div class="turn-stone black" id="turn-stone"></div>
+            <span id="turn-text"></span>
+          </div>
+          <div class="cap-chips">
+            <span class="chip" data-i18n-title="black"><i class="mini-stone black"></i><b id="cap-black">0</b></span>
+            <span class="chip" data-i18n-title="white"><i class="mini-stone white"></i><b id="cap-white">0</b></span>
+          </div>
         </div>
       </section>
 
@@ -143,6 +142,24 @@
       <input type="password" id="pwd-input" data-i18n-ph="pwd_label" autocomplete="off">
       <div class="err" id="pwd-err"></div>
       <button class="primary" id="pwd-join" data-i18n="pwd_join"></button>
+    </div>
+  </div>
+
+  <!-- 导入棋谱 -->
+  <div class="modal-overlay hidden" id="import-modal">
+    <div class="modal modal-wide">
+      <h2 data-i18n="import_sgf"></h2>
+      <p class="hint" data-i18n="import_tip"></p>
+      <div class="bm-row">
+        <a id="bm-link" class="bm-link" href="#" draggable="true" data-i18n="import_bookmark"></a>
+        <button class="ghost" id="bm-copy" data-i18n="import_copy_bm"></button>
+      </div>
+      <textarea id="sgf-input" data-i18n-ph="import_ph" spellcheck="false"></textarea>
+      <div class="err" id="import-err"></div>
+      <div class="row">
+        <button class="primary" id="import-do" data-i18n="import_do"></button>
+        <button class="ghost" id="import-close" data-i18n="import_close"></button>
+      </div>
     </div>
   </div>
 
@@ -431,6 +448,61 @@
       });
       $('study-end').addEventListener('click', function () {
         if (token) C.api('study/end', { token: token }).catch(showErr);
+      });
+
+      /* ---------- 导入棋谱（SGF） ---------- */
+
+      // 书签工具：在 101围棋网等已登录页面提取 SGF 并复制到剪贴板
+      function buildBookmarklet() {
+        var code = [
+          "(function(){",
+          "var pat=/\\(\\s*;[^()]{0,400}(GM|FF|SZ|HA|KM|AB|AW|PB|PW|DT|B|W)\\[/;",
+          "var src='',i,t,ss=document.scripts;",
+          "for(i=0;i<ss.length;i++){t=ss[i].textContent||'';",
+          "if(pat.test(t)){src=t.slice(t.search(pat));break;}}",
+          "if(!src){t=document.documentElement.innerHTML;var k=t.search(pat);if(k>=0)src=t.slice(k);}",
+          "if(!src){alert('未找到棋谱(SGF)数据 / No SGF found');return;}",
+          "src=src.slice(0,120000);",
+          "var ok=function(){alert('棋谱(SGF)已复制，请到围棋课堂老师端粘贴导入 / SGF copied');};",
+          "if(navigator.clipboard&&navigator.clipboard.writeText){",
+          "navigator.clipboard.writeText(src).then(ok,function(){window.prompt('手动复制 / Copy manually',src);});}",
+          "else{window.prompt('手动复制 / Copy manually',src);}})();"
+        ].join('');
+        return 'javascript:' + code;
+      }
+
+      var bmUrl = buildBookmarklet();
+      $('bm-link').setAttribute('href', bmUrl);
+      $('bm-copy').addEventListener('click', function () {
+        navigator.clipboard.writeText(bmUrl).then(function () {
+          C.toast(C.t('bm_copied'));
+        }, function () {
+          window.prompt(C.t('bm_copied'), bmUrl);
+        });
+      });
+
+      $('import-btn').addEventListener('click', function () {
+        $('import-modal').classList.remove('hidden');
+        $('import-err').textContent = '';
+        setTimeout(function () { $('sgf-input').focus(); }, 50);
+      });
+      $('import-close').addEventListener('click', function () {
+        $('import-modal').classList.add('hidden');
+      });
+      $('import-do').addEventListener('click', function () {
+        if (!token) return;
+        var text = $('sgf-input').value;
+        if (!text.trim()) return;
+        C.api('import/sgf', { token: token, sgf: text }).then(function (r) {
+          $('import-modal').classList.add('hidden');
+          $('sgf-input').value = '';
+          C.toast(C.t('import_ok')
+            .replace('{size}', r.size)
+            .replace('{setup}', r.setup)
+            .replace('{moves}', r.moves));
+        }).catch(function (e) {
+          $('import-err').textContent = (e.code === 'bad_sgf') ? C.t('import_fail') : (e.message || '');
+        });
       });
 
       $('pwd-join').addEventListener('click', doAuth);

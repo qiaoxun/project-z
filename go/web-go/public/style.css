@@ -151,6 +151,30 @@ body {
 
 .preview { opacity: 0; pointer-events: none; }
 
+/* 数气数字标记（盖在棋盘任意点上，位于棋子之上） */
+.count-mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 52%;
+  height: 52%;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #e74c3c;
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  z-index: 3;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.65);
+}
+
+#count-btn.active { background: #27ae60; color: #fff; }
+
 #board.interactive .cell { cursor: pointer; }
 #board.interactive .cell:hover .preview { opacity: 0.5; }
 
@@ -245,35 +269,63 @@ select {
 .color-pick .opt.white { background: radial-gradient(circle at 30% 30%, #fff, #ccc); box-shadow: 0 0 0 1px #ccc; }
 .color-pick .opt.active { border-color: #27ae60; }
 
-/* 轮次与提子 */
+/* 轮次与提子（紧凑单行） */
 .turn-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
   padding: 6px 8px;
   background: rgba(0, 0, 0, 0.05);
   border-radius: 6px;
+  flex: 1;
+  min-width: 120px;
 }
 .turn-stone { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
 .turn-stone.black { background: radial-gradient(circle at 30% 30%, #4a4a4a, #000); }
 .turn-stone.white { background: radial-gradient(circle at 30% 30%, #fff, #ccc); box-shadow: 0 0 0 1px #ccc; }
 
-.capture-row {
+.status-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 6px;
-  margin-bottom: 4px;
-  font-size: 0.92em;
+  flex-wrap: wrap;
 }
-.capture-stone { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
-.capture-stone.black { background: radial-gradient(circle at 30% 30%, #4a4a4a, #000); }
-.capture-stone.white { background: radial-gradient(circle at 30% 30%, #fff, #ccc); box-shadow: 0 0 0 1px #ccc; }
 
-/* 学生列表 */
+.cap-chips { display: flex; gap: 6px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 999px;
+}
+.chip b { font-size: 0.95em; color: #2c3e50; }
+
+/* 学生端信息行（数气按钮 + 名字） */
+.me-row { display: flex; align-items: center; gap: 10px; }
+.count-btn { flex-shrink: 0; padding: 9px 14px; font-size: 0.95em; }
+.me-info { flex: 1; min-width: 0; }
+.me-name { font-size: 1em; font-weight: 700; color: #2c3e50; }
+.me-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.85em;
+  color: #7f8c8d;
+  margin-top: 2px;
+}
+
+/* 学生端信息 */
+.link-btn {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  font-size: 1em;
+  padding: 0;
+  text-decoration: underline;
+}
 .roster { display: flex; flex-direction: column; gap: 4px; max-height: 190px; overflow-y: auto; }
 .roster-row {
   display: flex;
@@ -295,19 +347,6 @@ select {
   padding: 1px 6px;
 }
 .roster-empty { color: #999; font-size: 0.88em; padding: 4px 2px; }
-
-/* 学生端信息 */
-.me-name { font-size: 1.05em; color: #2c3e50; margin-bottom: 4px; }
-.link-btn {
-  margin-top: 8px;
-  background: none;
-  border: none;
-  color: #3498db;
-  cursor: pointer;
-  font-size: 0.85em;
-  padding: 0;
-  text-decoration: underline;
-}
 
 /* ---------- 棋盘覆盖层（学习模式等待出题） ---------- */
 
@@ -360,6 +399,39 @@ select {
 .modal input:focus { outline: none; border-color: #3498db; }
 .modal .err { color: #e74c3c; font-size: 0.85em; min-height: 1.3em; margin-bottom: 8px; }
 .modal .sub-err { color: #e67e22; font-size: 0.85em; min-height: 1.3em; margin-bottom: 8px; }
+
+.modal-wide { width: min(560px, 94vw); }
+.modal textarea {
+  width: 100%;
+  min-height: 130px;
+  padding: 9px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  margin-top: 10px;
+  resize: vertical;
+}
+.modal textarea:focus { outline: none; border-color: #3498db; }
+
+.bm-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+.bm-link {
+  flex: 1;
+  background: #fff8e1;
+  border: 1px dashed #f0b429;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #b26a00;
+  font-size: 0.88em;
+  cursor: grab;
+  user-select: none;
+}
+.bm-row button { flex-shrink: 0; padding: 7px 12px; font-size: 0.85em; }
 
 /* ---------- 轻提示 ---------- */
 
@@ -426,10 +498,66 @@ select {
 .entry-card h2 { margin-bottom: 6px; font-size: 1.1em; }
 .entry-card p { color: #95a5a6; font-size: 0.85em; }
 
-/* ---------- 窄屏 ---------- */
+/* ---------- 触屏 ---------- */
+
+.cell, button, a, select { touch-action: manipulation; }
+
+@media (pointer: coarse) {
+  button { min-height: 38px; }
+  .seg button { padding: 9px 6px; }
+  #lang-btn { padding: 8px 14px; }
+}
+
+/* ---------- 窄屏 / 平板竖屏 ---------- */
 
 @media (max-width: 900px) {
-  .layout { flex-direction: column; }
-  .board-wrap { --board: min(96vw, calc(100vh - 320px)); }
-  .side { width: min(96vw, 540px); max-height: none; }
+  .topbar { padding: 6px 12px; }
+  .brand { font-size: 1em; }
+
+  .layout {
+    flex-direction: column;
+    padding: 0 8px 10px;
+    gap: 10px;
+  }
+
+  /* 棋盘按剩余纵向空间自适应，保证信息面板基本在首屏内 */
+  .board-wrap {
+    --board: min(96vw, calc(100vh - 300px));
+    padding: 10px;
+  }
+  @supports (height: 100dvh) {
+    .board-wrap { --board: min(96vw, calc(100dvh - 300px)); }
+  }
+  /* 老师端面板多，棋盘再让出一些 */
+  body.teacher .board-wrap {
+    --board: min(96vw, calc(100vh - 430px));
+  }
+  @supports (height: 100dvh) {
+    body.teacher .board-wrap { --board: min(96vw, calc(100dvh - 430px)); }
+  }
+
+  .side {
+    width: min(96vw, 640px);
+    margin: 0 auto;
+    max-height: none;
+    gap: 8px;
+  }
+  .panel { padding: 8px 10px; }
+  .panel h2 { margin-bottom: 6px; }
+  .hint { font-size: 0.85em; }
+  .row button { padding: 9px 6px; }
+  .seg.inline button { padding: 6px 12px; }
+
+  /* 老师端：面板两列网格铺开，减少滚动 */
+  body.teacher .side {
+    width: 100%;
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    align-items: start;
+  }
+  body.teacher #battle-panel,
+  body.teacher #study-panel { grid-column: 1 / -1; }
+
+  .modal { padding: 20px; }
 }

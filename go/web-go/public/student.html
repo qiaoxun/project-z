@@ -27,25 +27,28 @@
 
     <aside class="side">
       <section class="panel">
-        <h2 class="me-name" id="me-name"></h2>
-        <p class="hint" id="me-mode" style="margin:0"></p>
-        <button class="link-btn" id="rename-btn" data-i18n="change_name"></button>
+        <div class="me-row">
+          <button class="ghost count-btn" id="count-btn" data-i18n="count_libs"></button>
+          <div class="me-info">
+            <div class="me-name" id="me-name"></div>
+            <div class="me-sub">
+              <span id="me-mode"></span>
+              <button class="link-btn" id="rename-btn" data-i18n="change_name"></button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="panel">
-        <div class="turn-indicator">
-          <div class="turn-stone black" id="turn-stone"></div>
-          <span id="turn-text"></span>
-        </div>
-        <div class="capture-row">
-          <div class="capture-stone black"></div>
-          <span><span data-i18n="black"></span> <span data-i18n="captured"></span>:
-            <span id="cap-black">0</span></span>
-        </div>
-        <div class="capture-row">
-          <div class="capture-stone white"></div>
-          <span><span data-i18n="white"></span> <span data-i18n="captured"></span>:
-            <span id="cap-white">0</span></span>
+        <div class="status-row">
+          <div class="turn-indicator">
+            <div class="turn-stone black" id="turn-stone"></div>
+            <span id="turn-text"></span>
+          </div>
+          <div class="cap-chips">
+            <span class="chip" data-i18n-title="black"><i class="mini-stone black"></i><b id="cap-black">0</b></span>
+            <span class="chip" data-i18n-title="white"><i class="mini-stone white"></i><b id="cap-white">0</b></span>
+          </div>
         </div>
       </section>
 
@@ -88,6 +91,11 @@
       var localGame = null;       // 学习模式：本地练习棋局（不同步到服务器）
       var mySnapshot = null;      // 学习模式：老师下发的初始棋谱
       var seededVersion = -1;     // 已 seed 的棋谱版本（避免无关广播覆盖本地进度）
+
+      var countMode = false;      // 数气模式（本地标注，不影响棋局）
+      var marks = [];             // 已盖数字的点（按点击顺序，序号即数字）
+      var marksSig = null;        // 盖数字时的盘面指纹，盘面变化即失效
+      var lastBoardKey = '';      // 模式/棋谱版本指纹，变化即清空数字
 
       var $ = function (id) { return document.getElementById(id); };
       var board = new C.BoardUI($('board'), onBoardClick);
@@ -157,6 +165,18 @@
 
       function onBoardClick(x, y) {
         if (!S || !creds) return;
+
+        // 数气模式：点击只盖/删数字，绝不落子
+        if (countMode) {
+          var idx = -1;
+          for (var i = 0; i < marks.length; i++) {
+            if (marks[i].x === x && marks[i].y === y) { idx = i; break; }
+          }
+          if (idx >= 0) marks.splice(idx, 1);
+          else marks.push({ x: x, y: y });
+          renderMarks();
+          return;
+        }
 
         // 学习模式：本地练习，不经过服务器
         if (S.mode === 'study' && S.study.phase === 'active' && localGame) {
@@ -235,17 +255,46 @@
 
         var studying = S.mode === 'study' && S.study.phase === 'active';
         overlay.classList.toggle('hidden', !(S.mode === 'study' && S.study.phase === 'setup'));
-        $('hint-text').textContent = hintText;
+        $('hint-text').textContent = countMode ? C.t('count_hint') : hintText;
         $('study-tools').classList.toggle('hidden', !studying);
         $('s-undo').disabled = !localGame || localGame.history.length <= 1;
         $('s-reset').disabled = !mySnapshot;
 
-        board.render(displayGame, { interactive: interactive, previewColor: previewColor });
+        // 数气数字只在盖数字时的同一盘面上有效：模式/棋谱版本变化或盘面变化 → 自动清除
+        var boardKey = S.mode + '|' + (S.study ? S.study.phase + '|' + S.study.version : '');
+        if (boardKey !== lastBoardKey) { lastBoardKey = boardKey; marks = []; }
+        var sig = JSON.stringify(displayGame.board);
+        if (marks.length && sig !== marksSig) marks = [];
+        marksSig = sig;
+
+        board.render(displayGame, {
+          interactive: interactive || countMode,
+          previewColor: countMode ? null : previewColor
+        });
+        renderMarks();
 
         $('turn-stone').className = 'turn-stone ' + displayGame.currentPlayer;
         $('turn-text').textContent = displayGame.currentPlayer === 'black' ? C.t('turn_black') : C.t('turn_white');
         $('cap-black').textContent = displayGame.captures.black;
         $('cap-white').textContent = displayGame.captures.white;
+      }
+
+      /* 数气数字渲染：数字 = 点击顺序序号（从 1 开始） */
+      function renderMarks() {
+        var olds = document.querySelectorAll('#board .count-mark');
+        for (var i = 0; i < olds.length; i++) olds[i].remove();
+        if (!marks.length) return;
+        var refCell = document.querySelector('#board .cell');
+        var fs = refCell ? Math.max(9, Math.round(refCell.offsetWidth * 0.34)) : 12;
+        marks.forEach(function (m, i) {
+          var cell = document.querySelector('#board .cell[data-x="' + m.x + '"][data-y="' + m.y + '"]');
+          if (!cell) return;
+          var el = document.createElement('div');
+          el.className = 'count-mark';
+          el.textContent = i + 1;
+          el.style.fontSize = fs + 'px';
+          cell.appendChild(el);
+        });
       }
 
       /* ---------- 事件绑定 ---------- */
@@ -269,6 +318,13 @@
           localGame = GoEngine.Game.fromDisplay(mySnapshot);
           render();
         }
+      });
+
+      $('count-btn').addEventListener('click', function () {
+        countMode = !countMode;
+        if (!countMode) marks = [];
+        $('count-btn').classList.toggle('active', countMode);
+        render();
       });
 
       $('rename-btn').addEventListener('click', function () {

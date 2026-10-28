@@ -190,6 +190,116 @@ function handleEvents(req, res, q) {
   });
 }
 
+/* ---------- SGF 解析（只取主变主线，容忍前后杂讯/截断） ---------- */
+
+function parseSgf(raw) {
+  if (typeof raw !== 'string') return null;
+  const start = raw.search(/\(\s*;/);
+  if (start < 0) return null;
+  let i = start;
+  const n = raw.length;
+  const skipWs = () => { while (i < n && /\s/.test(raw[i])) i++; };
+  const readValue = () => { // raw[i] === '['
+    let v = '';
+    i++;
+    while (i < n) {
+      const c = raw[i];
+      if (c === '\\') { i++; if (i < n) { v += raw[i]; i++; } continue; }
+      if (c === ']') { i++; break; }
+      v += c; i++;
+    }
+    return v;
+  };
+
+  const nodes = [];
+  skipWs();
+  if (raw[i] !== '(') return null;
+  i++;
+  while (i < n) {
+    skipWs();
+    if (i >= n) break;
+    const c = raw[i];
+    if (c === ';') {
+      i++;
+      const node = {};
+      skipWs();
+      while (i < n && /[A-Za-z]/.test(raw[i])) {
+        let key = '';
+        while (i < n && /[A-Za-z]/.test(raw[i])) key += raw[i++];
+        const vals = [];
+        skipWs();
+        while (i < n && raw[i] === '[') vals.push(readValue());
+        if (vals.length) {
+          key = key.toUpperCase();
+          node[key] = (node[key] || []).concat(vals);
+        }
+        skipWs();
+      }
+      nodes.push(node);
+    } else if (c === '(') {
+      // 变化分支：整段平衡跳过，只保留主线
+      i++;
+      let d = 1;
+      while (i < n && d > 0) {
+        if (raw[i] === '[') { readValue(); continue; }
+        if (raw[i] === '(') d++;
+        else if (raw[i] === ')') d--;
+        i++;
+      }
+    } else if (c === ')') {
+      break;
+    } else {
+      i++;
+    }
+  }
+  if (!nodes.length) return null;
+
+  const coord = (v) => {
+    if (!v || v.length < 2) return null;
+    return { x: v.charCodeAt(0) - 97, y: v.charCodeAt(1) - 97 };
+  };
+  const inBoard = (p) => p && p.x >= 0 && p.y >= 0;
+
+  const result = { size: 19, setup: [], moves: [], playerToMove: null };
+  const sz = nodes[0].SZ && nodes[0].SZ[0];
+  if (sz) {
+    const s = parseInt(sz, 10);
+    if (s >= 2 && s <= 25) result.size = s;
+  }
+  if (nodes[0].PL && nodes[0].PL[0]) {
+    result.playerToMove = nodes[0].PL[0].toLowerCase() === 'w' ? 'white' : 'black';
+  }
+
+  let sawMove = false;
+  for (const node of nodes) {
+    if (node.B || node.W) sawMove = true;
+    if (!sawMove) {
+      for (const v of (node.AB || [])) {
+        const p = coord(v);
+        if (inBoard(p)) result.setup.push({ x: p.x, y: p.y, color: 'black' });
+      }
+      for (const v of (node.AW || [])) {
+        const p = coord(v);
+        if (inBoard(p)) result.setup.push({ x: p.x, y: p.y, color: 'white' });
+      }
+    }
+    for (const key of ['B', 'W']) {
+      if (!node[key]) continue;
+      const v = node[key][0] || '';
+      const isPass = v === '' || (result.size <= 19 && v === 'tt');
+      const p = isPass ? null : coord(v);
+      result.moves.push({
+        color: key === 'B' ? 'black' : 'white',
+        pass: isPass,
+        x: p ? p.x : -1,
+        y: p ? p.y : -1
+      });
+    }
+  }
+  if (!result.setup.length && !result.moves.length) return null;
+  return result;
+}
+
 /* ---------- 权限辅助 ---------- */
 
 const isTeacher = (b) => !!teacherToken && !!b && b.token === teacherToken;
@@ -386,6 +496,54 @@ api['free'] = (body) => {
   hub.freeMode = !!body.on;
   broadcast();
   return [200, { ok: true }];
+};
+
+api['import/sgf'] = (body) => {
+  if (!isTeacher(body)) return [401, { error: 'unauthorized' }];
+  if (hub.mode === 'battle' && hub.battle) return [403, { error: 'battle_active' }];
+  const parsed = parseSgf(String(body.sgf || ''));
+  if (!parsed) return [400, { error: 'bad_sgf' }];
+
+  const size = parsed.size;
+  if (size !== hub.size) hub.size = size;
+  hub.game = new Game(size);
+  hub.battle = null;
+  if (hub.study.phase === 'active') {
+    hub.study = { phase: 'setup', snapshot: null, version: hub.study.version + 1 };
+  }
+
+  const g = hub.game;
+  let setupApplied = 0, movesApplied = 0, skipped = 0;
+  for (const s of parsed.setup) {
+    if (g.placeFree(s.x, s.y, s.color)) setupApplied++; else skipped++;
+  }
+  // 着手：主线颜色严格交替时按规则落子（正确提子/打劫），失败的单子退回自由摆；
+  // 有同色连下（习题常见）则全部自由摆，保证摆出与棋谱一致的盘面。
+  let alternating = true;
+  for (let k = 1; k < parsed.moves.length; k++) {
+    if (parsed.moves[k].color === parsed.moves[k - 1].color) { alternating = false; break; }
+  }
+  for (const m of parsed.moves) {
+    let ok = false;
+    if (m.pass) { g.pass(); ok = true; }
+    else if (alternating && g.place(m.x, m.y)) ok = true;
+    else ok = g.placeFree(m.x, m.y, m.color);
+    if (ok) movesApplied++; else skipped++;
+  }
+  if (parsed.playerToMove) {
+    g.currentPlayer = parsed.playerToMove;
+  } else if (parsed.moves.length) {
+    const first = parsed.moves[0].color;
+    g.currentPlayer = (parsed.moves.length % 2 === 0)
+      ? first
+      : (first === 'black' ? 'white' : 'black');
+  }
+
+  broadcast();
+  return [200, {
+    ok: true, size, setup: setupApplied, moves: movesApplied,
+    skipped, historyLen: g.history.length
+  }];
 };
 
 api['reset'] = (body) => {
