@@ -1,6 +1,19 @@
-/* 共用前端库：i18n、请求、SSE、棋盘渲染、提示（老师端/学生端/入口页共用） */
-(function () {
+/* 共用前端库：i18n、请求、SSE、棋盘渲染、提示、正解判题（老师端/学生端/入口页共用） */
+(function (root, factory) {
+  if (typeof module !== 'undefined' && module.exports) module.exports = factory();
+  else root.GO_COMMON = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
+
+  /* 浏览器用 localStorage；Node（单元测试）退化为内存对象 */
+  var storage = (typeof localStorage !== 'undefined') ? localStorage : (function () {
+    var mem = {};
+    return {
+      getItem: function (k) { return (k in mem) ? mem[k] : null; },
+      setItem: function (k, v) { mem[k] = String(v); },
+      removeItem: function (k) { delete mem[k]; }
+    };
+  })();
 
   var I18N = {
     zh: {
@@ -53,7 +66,33 @@
       import_do: '导入到棋盘',
       import_close: '关闭',
       import_ok: '导入成功：{size} 路 · 摆子 {setup} · 着手 {moves}',
-      import_fail: '未能识别棋谱，请确认粘贴的是包含 (;GM 或 (;FF 开头的 SGF 文本'
+      import_fail: '未能识别棋谱，请确认粘贴的是包含 (;GM 或 (;FF 开头的 SGF 文本',
+      import_solved: '含 {lines} 条正解，学习模式将自动判题',
+      bank: '题库',
+      bank_pick: '从题库选题',
+      bank_save: '存入题库',
+      bank_name: '题目名称',
+      bank_category: '分类（可填：死活/手筋/定式/官子）',
+      bank_load: '摆到棋盘',
+      bank_del: '删除',
+      bank_all: '全部分类',
+      bank_empty: '题库还是空的。摆好棋局（或导入棋谱）后点「存入题库」保存',
+      bank_need_name: '请填写题目名称',
+      bank_saved: '已存入题库',
+      bank_loaded: '已摆到棋盘',
+      bank_deleted: '已删除',
+      bank_confirm_del: '确定删除这道题？',
+      bank_tag_sol: '正解判定',
+      bank_tag_free: '自由练习',
+      bank_sol_now: '当前棋局含 {lines} 条正解，保存后在学习模式自动判题',
+      bank_nosol_now: '当前棋局不含正解（导入带分支的习题 SGF 可获得），学生端仅自由练习',
+      bank_cat_life: '死活', bank_cat_tesuji: '手筋', bank_cat_joseki: '定式',
+      bank_cat_endgame: '官子', bank_cat_other: '其他',
+      empty_board: '棋盘是空的，先摆好局面',
+      study_sol_hint: '本题含 {lines} 条正解，开始练习后学生端自动判题',
+      solve_right: '🎉 答对了！',
+      solve_wrong: '这手不是正解，再想想',
+      solve_locked: '已答对！等老师出下一题，或点「回到初始棋谱」重做'
     },
     en: {
       app_title: 'Go Classroom',
@@ -105,11 +144,37 @@
       import_do: 'Import to board',
       import_close: 'Close',
       import_ok: 'Imported: {size} board · {setup} stones · {moves} moves',
-      import_fail: 'Could not read the record — make sure the text contains SGF starting with (;GM or (;FF'
+      import_fail: 'Could not read the record — make sure the text contains SGF starting with (;GM or (;FF',
+      import_solved: '{lines} solution line(s) — auto-graded in Study mode',
+      bank: 'Problem bank',
+      bank_pick: 'Pick from bank',
+      bank_save: 'Save to bank',
+      bank_name: 'Problem name',
+      bank_category: 'Category (life/tesuji/joseki…)',
+      bank_load: 'Load',
+      bank_del: 'Delete',
+      bank_all: 'All categories',
+      bank_empty: 'The bank is empty. Set up a position (or import SGF), then press "Save to bank"',
+      bank_need_name: 'Name required',
+      bank_saved: 'Saved to bank',
+      bank_loaded: 'Loaded onto the board',
+      bank_deleted: 'Deleted',
+      bank_confirm_del: 'Delete this problem?',
+      bank_tag_sol: 'Auto-grade',
+      bank_tag_free: 'Free play',
+      bank_sol_now: 'Current position has {lines} solution line(s) — auto-graded in Study mode',
+      bank_nosol_now: 'No solution here (import a branched problem SGF to get one) — students practice freely',
+      bank_cat_life: 'Life & death', bank_cat_tesuji: 'Tesuji', bank_cat_joseki: 'Joseki',
+      bank_cat_endgame: 'Endgame', bank_cat_other: 'Other',
+      empty_board: 'Board is empty — set up stones first',
+      study_sol_hint: 'This problem has {lines} solution line(s); students will be auto-graded',
+      solve_right: '🎉 Correct!',
+      solve_wrong: 'Not the solution — try again',
+      solve_locked: 'Solved! Wait for the next problem, or tap "Reset to start" to retry'
     }
   };
 
-  var lang = localStorage.getItem('go-lang') || 'zh';
+  var lang = storage.getItem('go-lang') || 'zh';
 
   function t(key) {
     var d = I18N[lang] || I18N.zh;
@@ -140,7 +205,7 @@
 
   function setLang(l) {
     lang = l;
-    localStorage.setItem('go-lang', l);
+    storage.setItem('go-lang', l);
     applyI18n();
     if (typeof window.onLangChange === 'function') window.onLangChange(l);
   }
@@ -285,8 +350,71 @@
     }
   }
 
-  window.GO_COMMON = {
+  /* ---------- 正解判题（学习模式学生端本地使用） ---------- */
+
+  /* solution: 服务端下发的 { playerToMove, lines: [[{color,x,y,pass}]] }
+     约定：学生只走出题方的棋，应手由本地按正解自动补上；
+     学生着与当前线的预期不符 → 判错（落子被拒绝）。
+     move() 返回 { ok, autos, solved, locked, free }，落子由调用方执行。 */
+  function createSolver(solution) {
+    if (!solution || !Array.isArray(solution.lines)) return null;
+    var lines = solution.lines.filter(function (ln) {
+      return Array.isArray(ln) && ln.length && ln[0] && !ln[0].pass;
+    });
+    if (!lines.length) return null;
+    var studentColor = solution.playerToMove ||
+      (lines[0] && lines[0][0] && lines[0][0].color);
+    if (!studentColor) return null;
+    lines = lines.filter(function (ln) { return ln[0].color === studentColor; });
+    if (!lines.length) return null;
+
+    return {
+      lines: lines,
+      studentColor: studentColor,
+      lineIdx: -1,     // 选中的正解线（第一手落定后锁定）
+      p: 0,            // 该线上已消耗的步数
+      solved: false,
+
+      move: function (x, y) {
+        if (this.solved) return { locked: true };
+        if (this.lineIdx < 0) {
+          for (var k = 0; k < this.lines.length; k++) {
+            var m0 = this.lines[k][0];
+            if (m0.x === x && m0.y === y) { this.lineIdx = k; this.p = 1; break; }
+          }
+          if (this.lineIdx < 0) return { ok: false };
+        } else {
+          var exp = this.lines[this.lineIdx][this.p];
+          if (!exp || exp.pass || exp.x !== x || exp.y !== y) return { ok: false };
+          this.p++;
+        }
+        var line = this.lines[this.lineIdx];
+        var autos = [];
+        while (this.p < line.length && line[this.p].color !== this.studentColor) {
+          autos.push(line[this.p]);
+          this.p++;
+        }
+        if (this.p >= line.length) this.solved = true;
+        return { ok: true, autos: autos, solved: this.solved };
+      },
+
+      /* 回退一次「学生决策」：返回需要撤销的盘面手数（含自动应手） */
+      undoStep: function () {
+        if (this.lineIdx < 0) return 0;
+        var line = this.lines[this.lineIdx];
+        var n = 0;
+        while (this.p > 0 && line[this.p - 1].color !== this.studentColor) { this.p--; n++; }
+        if (this.p > 0) { this.p--; n++; }
+        if (this.p < line.length) this.solved = false;
+        if (this.p === 0) this.lineIdx = -1;
+        return n;
+      }
+    };
+  }
+
+  return {
     t: t, getLang: getLang, setLang: setLang, applyI18n: applyI18n,
-    api: api, openEvents: openEvents, toast: toast, BoardUI: BoardUI
+    api: api, openEvents: openEvents, toast: toast, BoardUI: BoardUI,
+    createSolver: createSolver
   };
-})();
+});

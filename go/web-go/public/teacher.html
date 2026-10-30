@@ -63,6 +63,7 @@
         </div>
         <div class="row">
           <button class="ghost" id="import-btn" data-i18n="import_sgf"></button>
+          <button class="ghost" id="bank-btn" data-i18n="bank"></button>
         </div>
       </section>
 
@@ -100,8 +101,12 @@
       <section class="panel hidden" id="study-panel">
         <div id="study-setup-ui">
           <p class="hint" data-i18n="study_setup_hint" style="margin-top:0"></p>
+          <p class="hint" id="study-sol-hint" style="margin-top:0"></p>
           <div class="row">
             <button class="primary" id="study-start" data-i18n="study_start"></button>
+          </div>
+          <div class="row">
+            <button class="ghost" id="study-pick" data-i18n="bank_pick"></button>
           </div>
         </div>
         <div id="study-live-ui" class="hidden">
@@ -159,6 +164,28 @@
       <div class="row">
         <button class="primary" id="import-do" data-i18n="import_do"></button>
         <button class="ghost" id="import-close" data-i18n="import_close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 题库 -->
+  <div class="modal-overlay hidden" id="bank-modal">
+    <div class="modal modal-wide">
+      <h2 data-i18n="bank"></h2>
+      <p class="hint" id="bank-sol-hint" style="margin-top:0"></p>
+      <div class="bank-save">
+        <input type="text" id="bank-name" data-i18n-ph="bank_name" maxlength="60" autocomplete="off">
+        <div class="bank-save-row">
+          <input type="text" id="bank-cat" data-i18n-ph="bank_category" maxlength="20" autocomplete="off" list="bank-cats">
+          <button class="primary" id="bank-save" data-i18n="bank_save"></button>
+        </div>
+        <datalist id="bank-cats"></datalist>
+      </div>
+      <select id="bank-cat-filter"></select>
+      <div class="bank-list" id="bank-list"></div>
+      <div class="err" id="bank-err"></div>
+      <div class="row">
+        <button class="ghost" id="bank-close" data-i18n="import_close"></button>
       </div>
     </div>
   </div>
@@ -300,6 +327,9 @@
           var active = S.study.phase === 'active';
           $('study-setup-ui').classList.toggle('hidden', active);
           $('study-live-ui').classList.toggle('hidden', !active);
+          $('study-sol-hint').textContent = (S.solution && !active)
+            ? C.t('study_sol_hint').replace('{lines}', S.solution.lines)
+            : '';
         }
 
         // 轮次与提子
@@ -365,7 +395,13 @@
       $('lang-btn').addEventListener('click', function () {
         C.setLang(C.getLang() === 'zh' ? 'en' : 'zh');
       });
-      window.onLangChange = render; // 切语言后刷新动态文本
+      window.onLangChange = function () {
+        render(); // 切语言后刷新动态文本
+        if (!$('bank-modal').classList.contains('hidden')) {
+          fillBankCats();
+          renderBank();
+        }
+      };
 
       each('#size-seg button', function (b) {
         b.addEventListener('click', function () {
@@ -449,6 +485,9 @@
       $('study-end').addEventListener('click', function () {
         if (token) C.api('study/end', { token: token }).catch(showErr);
       });
+      $('study-pick').addEventListener('click', function () {
+        if (token) openBank();
+      });
 
       /* ---------- 导入棋谱（SGF） ---------- */
 
@@ -496,12 +535,168 @@
         C.api('import/sgf', { token: token, sgf: text }).then(function (r) {
           $('import-modal').classList.add('hidden');
           $('sgf-input').value = '';
-          C.toast(C.t('import_ok')
+          var msg = C.t('import_ok')
             .replace('{size}', r.size)
             .replace('{setup}', r.setup)
-            .replace('{moves}', r.moves));
+            .replace('{moves}', r.moves);
+          if (r.solutionLines) msg += '，' + C.t('import_solved').replace('{lines}', r.solutionLines);
+          C.toast(msg);
         }).catch(function (e) {
           $('import-err').textContent = (e.code === 'bad_sgf') ? C.t('import_fail') : (e.message || '');
+        });
+      });
+
+      /* ---------- 题库 ---------- */
+
+      var bankItems = [];
+      var BANK_CATS = ['bank_cat_life', 'bank_cat_tesuji', 'bank_cat_joseki', 'bank_cat_endgame', 'bank_cat_other'];
+
+      function openBank() {
+        $('bank-modal').classList.remove('hidden');
+        $('bank-err').textContent = '';
+        fillBankCats();
+        refreshBank();
+      }
+
+      function fillBankCats() {
+        var dl = $('bank-cats');
+        dl.innerHTML = '';
+        BANK_CATS.forEach(function (k) {
+          var o = document.createElement('option');
+          o.value = C.t(k);
+          dl.appendChild(o);
+        });
+      }
+
+      function refreshBank() {
+        C.api('bank/list', { token: token }).then(function (r) {
+          bankItems = r.list || [];
+          renderBank();
+        }).catch(showErr);
+      }
+
+      function fmtTime(ts) {
+        var d = new Date(ts);
+        var p = function (x) { return (x < 10 ? '0' : '') + x; };
+        return (d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+      }
+
+      function renderBank() {
+        // 保存区提示：当前棋局是否带正解
+        $('bank-sol-hint').textContent = (S && S.solution)
+          ? C.t('bank_sol_now').replace('{lines}', S.solution.lines)
+          : C.t('bank_nosol_now');
+
+        // 分类筛选
+        var sel = $('bank-cat-filter');
+        var cats = [];
+        bankItems.forEach(function (p) {
+          if (p.category && cats.indexOf(p.category) < 0) cats.push(p.category);
+        });
+        var prev = sel.value;
+        sel.innerHTML = '';
+        var all = document.createElement('option');
+        all.value = '';
+        all.textContent = C.t('bank_all');
+        sel.appendChild(all);
+        cats.forEach(function (c) {
+          var o = document.createElement('option');
+          o.value = c;
+          o.textContent = c;
+          sel.appendChild(o);
+        });
+        if (prev && cats.indexOf(prev) >= 0) sel.value = prev;
+        var f = sel.value;
+
+        // 列表
+        var box = $('bank-list');
+        box.innerHTML = '';
+        var rows = bankItems.filter(function (p) { return !f || p.category === f; });
+        if (!rows.length) {
+          var d = document.createElement('div');
+          d.className = 'bank-empty';
+          d.textContent = C.t('bank_empty');
+          box.appendChild(d);
+          return;
+        }
+        rows.forEach(function (p) { box.appendChild(bankRow(p)); });
+      }
+
+      function bankRow(p) {
+        var row = document.createElement('div');
+        row.className = 'bank-row';
+
+        var info = document.createElement('div');
+        info.className = 'bank-info';
+        var title = document.createElement('div');
+        title.className = 'bank-title';
+        title.textContent = p.name;
+        var tag = document.createElement('span');
+        tag.className = 'tag' + (p.hasSolution ? ' sol' : '');
+        tag.textContent = C.t(p.hasSolution ? 'bank_tag_sol' : 'bank_tag_free');
+        title.appendChild(tag);
+        var meta = document.createElement('div');
+        meta.className = 'bank-meta';
+        meta.textContent = [p.category || '—', p.size + ' 路', fmtTime(p.createdAt)].join(' · ');
+        info.appendChild(title);
+        info.appendChild(meta);
+
+        var btns = document.createElement('div');
+        btns.className = 'bank-btns';
+        var load = document.createElement('button');
+        load.className = 'primary';
+        load.textContent = C.t('bank_load');
+        load.addEventListener('click', function () {
+          C.api('bank/load', { token: token, id: p.id }).then(function () {
+            $('bank-modal').classList.add('hidden');
+            C.toast(C.t('bank_loaded'));
+          }).catch(showErr);
+        });
+        var del = document.createElement('button');
+        del.className = 'danger';
+        del.textContent = C.t('bank_del');
+        del.addEventListener('click', function () {
+          if (!confirm(C.t('bank_confirm_del'))) return;
+          C.api('bank/delete', { token: token, id: p.id }).then(function (r) {
+            bankItems = r.list || [];
+            renderBank();
+            C.toast(C.t('bank_deleted'));
+          }).catch(showErr);
+        });
+        btns.appendChild(load);
+        btns.appendChild(del);
+
+        row.appendChild(info);
+        row.appendChild(btns);
+        return row;
+      }
+
+      $('bank-btn').addEventListener('click', function () {
+        if (token) openBank();
+      });
+      $('bank-close').addEventListener('click', function () {
+        $('bank-modal').classList.add('hidden');
+      });
+      $('bank-cat-filter').addEventListener('change', renderBank);
+      $('bank-save').addEventListener('click', function () {
+        if (!token) return;
+        var name = $('bank-name').value.trim();
+        if (!name) { $('bank-err').textContent = C.t('bank_need_name'); return; }
+        $('bank-err').textContent = '';
+        C.api('bank/save', {
+          token: token,
+          name: name,
+          category: $('bank-cat').value.trim()
+        }).then(function (r) {
+          bankItems = r.list || [];
+          $('bank-name').value = '';
+          $('bank-cat').value = '';
+          renderBank();
+          C.toast(C.t('bank_saved'));
+        }).catch(function (e) {
+          $('bank-err').textContent = e.code === 'empty_board' ? C.t('empty_board')
+            : e.code === 'name_required' ? C.t('bank_need_name')
+            : (e.message || '');
         });
       });
 

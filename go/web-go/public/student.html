@@ -91,6 +91,7 @@
       var localGame = null;       // 学习模式：本地练习棋局（不同步到服务器）
       var mySnapshot = null;      // 学习模式：老师下发的初始棋谱
       var seededVersion = -1;     // 已 seed 的棋谱版本（避免无关广播覆盖本地进度）
+      var sol = null;             // 学习模式：正解判题器（题目无正解时为 null）
 
       var countMode = false;      // 数气模式（本地标注，不影响棋局）
       var marks = [];             // 已盖数字的点（按点击顺序，序号即数字）
@@ -178,8 +179,22 @@
           return;
         }
 
-        // 学习模式：本地练习，不经过服务器
+        // 学习模式：本地练习，不经过服务器；带正解时本地自动判题
         if (S.mode === 'study' && S.study.phase === 'active' && localGame) {
+          if (sol) {
+            var r = sol.move(x, y);
+            if (r.locked) { C.toast(C.t('solve_locked')); return; }
+            if (!r.ok) { C.toast(C.t('solve_wrong')); return; }
+            if (!localGame.place(x, y)) { C.toast(C.t('illegal')); return; }
+            // 应手按正解自动补上（含提子规则）
+            for (var ai = 0; ai < r.autos.length; ai++) {
+              var am = r.autos[ai];
+              if (am.pass) localGame.pass(); else localGame.place(am.x, am.y);
+            }
+            if (r.solved) C.toast(C.t('solve_right'));
+            render();
+            return;
+          }
           if (!localGame.place(x, y)) { C.toast(C.t('illegal')); return; }
           render();
           return;
@@ -239,15 +254,17 @@
             if (seededVersion !== S.study.version || !localGame) {
               mySnapshot = S.study.snapshot;
               localGame = GoEngine.Game.fromDisplay(mySnapshot);
+              sol = S.study.solution ? C.createSolver(S.study.solution) : null;
               seededVersion = S.study.version;
             }
             displayGame = localGame.serialize();
             interactive = true;
             previewColor = localGame.currentPlayer;
-            hintText = C.t('study_go');
+            hintText = (sol && sol.solved) ? C.t('solve_right') : C.t('study_go');
           } else {
             localGame = null;
             mySnapshot = null;
+            sol = null;
             seededVersion = -1;
             hintText = C.t('study_wait');
           }
@@ -310,12 +327,19 @@
       });
 
       $('s-undo').addEventListener('click', function () {
-        if (localGame && localGame.undo()) render();
+        if (!localGame) return;
+        // 有判题时一次悔一步「学生决策」（连同正解应手一起回退）
+        var steps = sol ? sol.undoStep() : 1;
+        while (steps-- > 0) {
+          if (!localGame.undo()) break;
+        }
+        render();
       });
 
       $('s-reset').addEventListener('click', function () {
         if (mySnapshot) {
           localGame = GoEngine.Game.fromDisplay(mySnapshot);
+          sol = S.study.solution ? C.createSolver(S.study.solution) : null;
           render();
         }
       });
